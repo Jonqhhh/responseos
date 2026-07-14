@@ -1,10 +1,13 @@
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom'
+import { supabase } from './lib/supabase'
 import Dashboard from './pages/Dashboard'
 import Certifications from './pages/Certifications'
 import Tasks from './pages/Tasks'
 import Alerts from './pages/Alerts'
 import AuditLog from './pages/AuditLog'
 import AIAssistant from './pages/AIAssistant'
+import Login from './pages/Login'
 import './index.css'
 
 const NAV = [
@@ -17,6 +20,54 @@ const NAV = [
 ]
 
 export default function App() {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // check if already logged in
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+        setUser(profile)
+      }
+      setLoading(false)
+    })
+
+    // listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') setUser(null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    setUser(null)
+  }
+
+  if (loading) return (
+    <div style={{
+      height: '100vh', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', background: 'var(--bg)'
+    }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: '50%',
+        border: '2px solid var(--border)', borderTopColor: 'var(--blue)',
+        animation: 'spin 0.8s linear infinite'
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+
+  if (!user) return <Login onLogin={setUser} />
+
+  const unread = 0
+
   return (
     <BrowserRouter>
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -63,19 +114,29 @@ export default function App() {
             ))}
           </nav>
 
-          <div style={{
-            margin: '0 10px',
-            padding: '10px',
-            background: 'var(--surface2)',
-            borderRadius: 'var(--radius)',
-            border: '0.5px solid var(--border)'
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>
-              Harrison Seals
+          {/* User + logout */}
+          <div style={{ margin: '0 10px' }}>
+            <div style={{
+              padding: '10px',
+              background: 'var(--surface2)',
+              borderRadius: 'var(--radius)',
+              border: '0.5px solid var(--border)',
+              marginBottom: 8
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>
+                {user.full_name}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)' }}>
+                {user.role.toUpperCase()}
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)' }}>
-              ADMIN
-            </div>
+            <button
+              onClick={handleLogout}
+              className="btn btn-ghost"
+              style={{ width: '100%', justifyContent: 'center', fontSize: 12 }}
+            >
+              Sign out
+            </button>
           </div>
         </aside>
 
