@@ -4,12 +4,14 @@ import { getTasks } from '../lib/supabase'
 import { LoadingState, ErrorState } from '../components/States'
 import PageHeader from '../components/PageHeader'
 import AssignTaskModal from '../components/AssignTaskModal'
+import EditTaskModal from '../components/EditTaskModal'
 import { supabase } from '../lib/supabase'
 
 export default function Tasks() {
   const { data, loading, error, refetch } = useData(getTasks)
   const tasks = data ?? []
-  const [showModal, setShowModal] = useState(false)
+  const [showAdd, setShowAdd] = useState(false)
+  const [editing, setEditing] = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
 
   useState(() => {
@@ -23,26 +25,34 @@ export default function Tasks() {
   }, [])
 
   if (loading) return <LoadingState />
-  if (error)   return <ErrorState message={error} />
+  if (error) return <ErrorState message={error} />
 
   return (
     <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {showAdd && (
+        <AssignTaskModal
+          onClose={() => setShowAdd(false)}
+          onSaved={refetch}
+          currentUser={currentUser}
+        />
+      )}
+
+      {!!editing && (
+        <EditTaskModal
+          task={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); refetch(); }}
+        />
+      )}
+
       <PageHeader
         title="Tasks"
         subtitle="Assigned work, inspections, and scheduled compliance activities."
         action={
-          <>
-            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-              + Assign task
-            </button>
-            {showModal && (
-              <AssignTaskModal
-                onClose={() => setShowModal(false)}
-                onSaved={refetch}
-                currentUser={currentUser}
-              />
-            )}
-          </>
+          <button type="button" className="btn btn-primary" onClick={() => setShowAdd(true)}>
+            + Assign task
+          </button>
         }
       />
 
@@ -63,13 +73,13 @@ export default function Tasks() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Title</th><th>Assigned to</th><th>Type</th><th>Due date</th><th>Status</th>
+              <th>Title</th><th>Assigned to</th><th>Type</th><th>Due date</th><th>Status</th><th></th>
             </tr>
           </thead>
           <tbody>
             {tasks.length === 0 && (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text3)', padding: 24 }}>
+                <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text3)', padding: 24 }}>
                   No tasks yet — click + Assign task to get started.
                 </td>
               </tr>
@@ -89,6 +99,19 @@ export default function Tasks() {
                     t.status === 'in_progress' ? 'pill-amber' :
                     t.status === 'complete' ? 'pill-green' : 'pill-blue'
                   }`}>{t.status.replace('_', ' ')}</span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setEditing(t); }}
+                    style={{
+                      padding: '4px 10px', borderRadius: 4,
+                      border: '0.5px solid var(--border2)',
+                      background: 'transparent', color: 'var(--text2)',
+                      fontSize: 12, cursor: 'pointer'
+                    }}>
+                    Edit
+                  </button>
                 </td>
               </tr>
             ))}
