@@ -7,6 +7,7 @@ import Tasks from './pages/Tasks'
 import Alerts from './pages/Alerts'
 import AuditLog from './pages/AuditLog'
 import AIAssistant from './pages/AIAssistant'
+import Users from './pages/Users'
 import Login from './pages/Login'
 import './index.css'
 
@@ -17,6 +18,7 @@ const NAV = [
   { to: '/alerts', icon: '△', label: 'Alerts'         },
   { to: '/ai',     icon: '◆', label: 'AI Assistant'   },
   { to: '/audit',  icon: '≡', label: 'Audit Log'      },
+  { to: '/users',  icon: '◉', label: 'Users'          },
 ]
 
 export default function App() {
@@ -24,7 +26,6 @@ export default function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // check if already logged in
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         const { data: profile } = await supabase
@@ -37,7 +38,6 @@ export default function App() {
       setLoading(false)
     })
 
-    // listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') setUser(null)
     })
@@ -66,13 +66,10 @@ export default function App() {
 
   if (!user) return <Login onLogin={setUser} />
 
-  const unread = 0
-
   return (
     <BrowserRouter>
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
-        {/* Sidebar */}
         <aside style={{
           width: 220, flexShrink: 0,
           background: 'var(--surface)',
@@ -114,7 +111,6 @@ export default function App() {
             ))}
           </nav>
 
-          {/* User + logout */}
           <div style={{ margin: '0 10px' }}>
             <div style={{
               padding: '10px',
@@ -140,7 +136,6 @@ export default function App() {
           </div>
         </aside>
 
-        {/* Main content */}
         <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <Routes>
             <Route path="/"       element={<Dashboard />} />
@@ -149,6 +144,7 @@ export default function App() {
             <Route path="/alerts" element={<Alerts />} />
             <Route path="/ai"     element={<AIAssistant />} />
             <Route path="/audit"  element={<AuditLog />} />
+            <Route path="/users"  element={<Users />} />
             <Route path="*"       element={<Navigate to="/" />} />
           </Routes>
         </main>
