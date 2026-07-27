@@ -116,7 +116,7 @@ html, body, #root {
 .bottom-nav-item.active { color: var(--blue); }
 .bottom-nav-item span.icon { font-size: 18px; }
 
-/* ── Mobile cards (replace table rows) ── */
+/* ── Mobile cards ── */
 .mobile-card-list { display: none; flex-direction: column; gap: 10px; }
 .mobile-card {
   background: var(--surface);
@@ -132,6 +132,9 @@ html, body, #root {
 .mobile-card-label { font-size: 11px; color: var(--text3); }
 .mobile-card-value { font-size: 13px; color: var(--text); font-weight: 500; }
 
+/* ── Mobile score card ── */
+.mobile-score-card { display: none; }
+
 @media (max-width: 768px) {
   /* Hide desktop sidebar */
   aside.sidebar { display: none !important; }
@@ -146,8 +149,20 @@ html, body, #root {
   .data-table { display: none; }
   .mobile-card-list { display: flex; }
 
-  /* Stack metrics grid */
-  .metrics-grid { grid-template-columns: 1fr 1fr !important; }
+  /* Dashboard metrics grid — 2 columns on mobile */
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Hide desktop score ring card on mobile */
+  .metrics-grid > div:first-child {
+    display: none !important;
+  }
+
+  /* Show mobile score card */
+  .mobile-score-card {
+    display: block !important;
+  }
 
   /* Stack two-col grid */
   .grid2 { grid-template-columns: 1fr !important; }
@@ -158,6 +173,6 @@ html, body, #root {
   /* Full width buttons on mobile */
   .mobile-full { width: 100%; justify-content: center; }
 
-  /* Score ring smaller */
+  /* Score ring smaller on mobile */
   .score-wrap { flex-direction: column; align-items: center; }
 }
