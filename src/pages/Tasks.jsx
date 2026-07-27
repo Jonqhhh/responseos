@@ -1,11 +1,26 @@
+import { useState } from 'react'
 import { useData } from '../lib/useData'
 import { getTasks } from '../lib/supabase'
 import { LoadingState, ErrorState } from '../components/States'
 import PageHeader from '../components/PageHeader'
+import AssignTaskModal from '../components/AssignTaskModal'
+import { supabase } from '../lib/supabase'
 
 export default function Tasks() {
-  const { data, loading, error } = useData(getTasks)
+  const { data, loading, error, refetch } = useData(getTasks)
   const tasks = data ?? []
+  const [showModal, setShowModal] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
+
+  useState(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) {
+        const { data: profile } = await supabase
+          .from('users').select('*').eq('id', user.id).single()
+        setCurrentUser(profile)
+      }
+    })
+  }, [])
 
   if (loading) return <LoadingState />
   if (error)   return <ErrorState message={error} />
@@ -15,7 +30,20 @@ export default function Tasks() {
       <PageHeader
         title="Tasks"
         subtitle="Assigned work, inspections, and scheduled compliance activities."
-        action={<button className="btn btn-primary">+ Assign task</button>}
+        action={
+          <>
+            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+              + Assign task
+            </button>
+            {showModal && (
+              <AssignTaskModal
+                onClose={() => setShowModal(false)}
+                onSaved={refetch}
+                currentUser={currentUser}
+              />
+            )}
+          </>
+        }
       />
 
       <div style={{ display: 'flex', gap: 10 }}>
@@ -39,6 +67,13 @@ export default function Tasks() {
             </tr>
           </thead>
           <tbody>
+            {tasks.length === 0 && (
+              <tr>
+                <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text3)', padding: 24 }}>
+                  No tasks yet — click + Assign task to get started.
+                </td>
+              </tr>
+            )}
             {tasks.map(t => (
               <tr key={t.id}>
                 <td style={{ fontWeight: 500 }}>{t.title}</td>

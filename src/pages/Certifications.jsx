@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { useData } from '../lib/useData'
 import { getCertifications } from '../lib/supabase'
 import { LoadingState, ErrorState } from '../components/States'
 import PageHeader from '../components/PageHeader'
+import AddCertificationModal from '../components/AddCertificationModal'
 
 function daysUntil(dateStr) {
   const diff = new Date(dateStr) - new Date()
@@ -9,8 +11,9 @@ function daysUntil(dateStr) {
 }
 
 export default function Certifications() {
-  const { data, loading, error } = useData(getCertifications)
+  const { data, loading, error, refetch } = useData(getCertifications)
   const certs = data ?? []
+  const [showModal, setShowModal] = useState(false)
 
   if (loading) return <LoadingState />
   if (error)   return <ErrorState message={error} />
@@ -20,7 +23,19 @@ export default function Certifications() {
       <PageHeader
         title="Certifications"
         subtitle="Track employee credentials, expiry dates, and renewal status."
-        action={<button className="btn btn-primary">+ Add certification</button>}
+        action={
+          <>
+            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+              + Add certification
+            </button>
+            {showModal && (
+              <AddCertificationModal
+                onClose={() => setShowModal(false)}
+                onSaved={refetch}
+              />
+            )}
+          </>
+        }
       />
 
       <div style={{ display: 'flex', gap: 10 }}>
@@ -48,6 +63,13 @@ export default function Certifications() {
             </tr>
           </thead>
           <tbody>
+            {certs.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text3)', padding: 24 }}>
+                  No certifications yet — click + Add certification to get started.
+                </td>
+              </tr>
+            )}
             {certs.map(c => {
               const days = daysUntil(c.expiry_date)
               return (

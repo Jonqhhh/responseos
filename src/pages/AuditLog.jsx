@@ -3,6 +3,30 @@ import { getAuditLogs } from '../lib/supabase'
 import { LoadingState, ErrorState } from '../components/States'
 import PageHeader from '../components/PageHeader'
 
+function exportCSV(logs) {
+  const headers = ['Timestamp', 'Actor', 'Action', 'Table', 'Detail', 'IP']
+  const rows = logs.map(log => [
+    new Date(log.created_at).toLocaleString(),
+    log.actor_id || 'SYSTEM',
+    log.action,
+    log.table_name || '',
+    log.after_state ? Object.values(log.after_state).join(' | ') : '',
+    log.ip_address || ''
+  ])
+
+  const csv = [headers, ...rows]
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `responseos-audit-log-${new Date().toISOString().split('T')[0]}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function AuditLog() {
   const { data, loading, error } = useData(getAuditLogs)
   const logs = data ?? []
@@ -15,7 +39,11 @@ export default function AuditLog() {
       <PageHeader
         title="Audit Log"
         subtitle="Immutable, time-stamped record of every action on the platform."
-        action={<button className="btn btn-ghost">Export CSV</button>}
+        action={
+          <button className="btn btn-ghost" onClick={() => exportCSV(logs)}>
+            Export CSV
+          </button>
+        }
       />
 
       <div className="card" style={{
@@ -36,6 +64,13 @@ export default function AuditLog() {
             </tr>
           </thead>
           <tbody>
+            {logs.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text3)', padding: 24 }}>
+                  No audit log entries yet.
+                </td>
+              </tr>
+            )}
             {logs.map(log => (
               <tr key={log.id}>
                 <td className="mono" style={{ color: 'var(--text2)', whiteSpace: 'nowrap' }}>
