@@ -24,13 +24,13 @@ export default function Alerts() {
   }
 
   return (
-    <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         title="Alerts"
         subtitle="Platform-generated compliance alerts, warnings, and escalations."
       />
 
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {['critical', 'warning', 'info'].map(t => (
           <span key={t} className="pill" style={{
             fontSize: 13, padding: '5px 12px',
@@ -42,6 +42,11 @@ export default function Alerts() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {alerts.length === 0 && (
+          <div className="card" style={{ textAlign: 'center', color: 'var(--text3)' }}>
+            No alerts — everything looks good.
+          </div>
+        )}
         {alerts.map(a => (
           <div key={a.id} className="card" style={{
             display: 'flex', gap: 14, alignItems: 'flex-start',
@@ -55,7 +60,7 @@ export default function Alerts() {
             }}>
               {tierIcon[a.tier]}
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500, marginBottom: 4 }}>
                 {a.message}
               </div>
@@ -65,17 +70,17 @@ export default function Alerts() {
                   <span style={{ color: 'var(--red)', marginLeft: 8 }}>● Unread</span>
                 )}
               </div>
+              {!a.acknowledged && (
+                <button
+                  className="btn btn-ghost"
+                  style={{ fontSize: 12, padding: '5px 12px', marginTop: 10 }}
+                  onClick={() => handleAcknowledge(a.id)}
+                  disabled={acknowledging === a.id}
+                >
+                  {acknowledging === a.id ? 'Saving…' : 'Acknowledge'}
+                </button>
+              )}
             </div>
-            {!a.acknowledged && (
-              <button
-                className="btn btn-ghost"
-                style={{ fontSize: 12, padding: '5px 12px', opacity: acknowledging === a.id ? 0.5 : 1 }}
-                onClick={() => handleAcknowledge(a.id)}
-                disabled={acknowledging === a.id}
-              >
-                {acknowledging === a.id ? 'Saving…' : 'Acknowledge'}
-              </button>
-            )}
           </div>
         ))}
       </div>

@@ -21,15 +21,11 @@ export default function Certifications() {
   if (error) return <ErrorState message={error} />
 
   return (
-    <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {showAdd && (
-        <AddCertificationModal
-          onClose={() => setShowAdd(false)}
-          onSaved={refetch}
-        />
+        <AddCertificationModal onClose={() => setShowAdd(false)} onSaved={refetch} />
       )}
-
       {!!editing && (
         <EditCertificationModal
           cert={editing}
@@ -42,13 +38,13 @@ export default function Certifications() {
         title="Certifications"
         subtitle="Track employee credentials, expiry dates, and renewal status."
         action={
-          <button type="button" className="btn btn-primary" onClick={() => setShowAdd(true)}>
+          <button type="button" className="btn btn-primary mobile-full" onClick={() => setShowAdd(true)}>
             + Add certification
           </button>
         }
       />
 
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {[
           { label: 'Valid', count: certs.filter(c => c.status === 'valid').length, cls: 'pill-green' },
           { label: 'Expiring soon', count: certs.filter(c => c.status === 'expiring').length, cls: 'pill-amber' },
@@ -60,26 +56,20 @@ export default function Certifications() {
         ))}
       </div>
 
+      {/* Desktop table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <table className="data-table">
           <thead>
             <tr>
-              <th>Employee</th>
-              <th>Certification</th>
-              <th>Issuing body</th>
-              <th>Expiry date</th>
-              <th>Days remaining</th>
-              <th>Status</th>
-              <th></th>
+              <th>Employee</th><th>Certification</th><th>Issuing body</th>
+              <th>Expiry date</th><th>Days remaining</th><th>Status</th><th></th>
             </tr>
           </thead>
           <tbody>
             {certs.length === 0 && (
-              <tr>
-                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text3)', padding: 24 }}>
-                  No certifications yet — click + Add certification to get started.
-                </td>
-              </tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text3)', padding: 24 }}>
+                No certifications yet.
+              </td></tr>
             )}
             {certs.map(c => {
               const days = daysUntil(c.expiry_date)
@@ -94,22 +84,10 @@ export default function Certifications() {
                   }}>
                     {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
                   </td>
+                  <td><span className={`pill ${c.status === 'expired' ? 'pill-red' : c.status === 'expiring' ? 'pill-amber' : 'pill-green'}`}>{c.status}</span></td>
                   <td>
-                    <span className={`pill ${
-                      c.status === 'expired' ? 'pill-red' :
-                      c.status === 'expiring' ? 'pill-amber' : 'pill-green'
-                    }`}>{c.status}</span>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setEditing(c); }}
-                      style={{
-                        padding: '4px 10px', borderRadius: 4,
-                        border: '0.5px solid var(--border2)',
-                        background: 'transparent', color: 'var(--text2)',
-                        fontSize: 12, cursor: 'pointer'
-                      }}>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(c) }}
+                      style={{ padding: '4px 10px', borderRadius: 4, border: '0.5px solid var(--border2)', background: 'transparent', color: 'var(--text2)', fontSize: 12, cursor: 'pointer' }}>
                       Edit
                     </button>
                   </td>
@@ -118,6 +96,48 @@ export default function Certifications() {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="mobile-card-list">
+        {certs.length === 0 && (
+          <div className="mobile-card" style={{ textAlign: 'center', color: 'var(--text3)' }}>
+            No certifications yet — tap + Add certification.
+          </div>
+        )}
+        {certs.map(c => {
+          const days = daysUntil(c.expiry_date)
+          return (
+            <div key={c.id} className="mobile-card" style={{ borderLeft: `3px solid ${c.status === 'expired' ? 'var(--red)' : c.status === 'expiring' ? 'var(--amber)' : 'var(--green)'}` }}>
+              <div className="mobile-card-row">
+                <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>{c.cert_name}</span>
+                <span className={`pill ${c.status === 'expired' ? 'pill-red' : c.status === 'expiring' ? 'pill-amber' : 'pill-green'}`}>{c.status}</span>
+              </div>
+              <div className="mobile-card-row">
+                <span className="mobile-card-label">Employee</span>
+                <span className="mobile-card-value">{c.users?.full_name}</span>
+              </div>
+              <div className="mobile-card-row">
+                <span className="mobile-card-label">Issuing body</span>
+                <span className="mobile-card-value">{c.issuing_body}</span>
+              </div>
+              <div className="mobile-card-row">
+                <span className="mobile-card-label">Expires</span>
+                <span className="mobile-card-value" style={{
+                  color: days < 0 ? 'var(--red)' : days <= 7 ? 'var(--red)' : days <= 30 ? 'var(--amber)' : 'var(--green)'
+                }}>
+                  {c.expiry_date} ({days < 0 ? `${Math.abs(days)}d overdue` : `${days}d left`})
+                </span>
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <button type="button" onClick={() => setEditing(c)}
+                  className="btn btn-ghost" style={{ fontSize: 12, padding: '5px 12px' }}>
+                  Edit
+                </button>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

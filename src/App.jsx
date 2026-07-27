@@ -16,8 +16,8 @@ const NAV = [
   { to: '/certs',  icon: '◈', label: 'Certifications' },
   { to: '/tasks',  icon: '◎', label: 'Tasks'          },
   { to: '/alerts', icon: '△', label: 'Alerts'         },
-  { to: '/ai',     icon: '◆', label: 'AI Assistant'   },
-  { to: '/audit',  icon: '≡', label: 'Audit Log'      },
+  { to: '/ai',     icon: '◆', label: 'AI'             },
+  { to: '/audit',  icon: '≡', label: 'Audit'          },
   { to: '/users',  icon: '◉', label: 'Users'          },
 ]
 
@@ -29,16 +29,13 @@ export default function App() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
+          .from('users').select('*').eq('id', session.user.id).single()
         setUser(profile)
       }
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'SIGNED_OUT') setUser(null)
     })
 
@@ -70,7 +67,8 @@ export default function App() {
     <BrowserRouter>
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
-        <aside style={{
+        {/* Desktop sidebar */}
+        <aside className="sidebar" style={{
           width: 220, flexShrink: 0,
           background: 'var(--surface)',
           borderRight: '0.5px solid var(--border)',
@@ -113,11 +111,8 @@ export default function App() {
 
           <div style={{ margin: '0 10px' }}>
             <div style={{
-              padding: '10px',
-              background: 'var(--surface2)',
-              borderRadius: 'var(--radius)',
-              border: '0.5px solid var(--border)',
-              marginBottom: 8
+              padding: '10px', background: 'var(--surface2)',
+              borderRadius: 'var(--radius)', border: '0.5px solid var(--border)', marginBottom: 8
             }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>
                 {user.full_name}
@@ -126,16 +121,14 @@ export default function App() {
                 {user.role.toUpperCase()}
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="btn btn-ghost"
-              style={{ width: '100%', justifyContent: 'center', fontSize: 12 }}
-            >
+            <button onClick={handleLogout} className="btn btn-ghost"
+              style={{ width: '100%', justifyContent: 'center', fontSize: 12 }}>
               Sign out
             </button>
           </div>
         </aside>
 
+        {/* Main content */}
         <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <Routes>
             <Route path="/"       element={<Dashboard />} />
@@ -148,6 +141,21 @@ export default function App() {
             <Route path="*"       element={<Navigate to="/" />} />
           </Routes>
         </main>
+
+        {/* Mobile bottom nav */}
+        <nav className="bottom-nav">
+          <div className="bottom-nav-inner">
+            {NAV.map(n => (
+              <NavLink key={n.to} to={n.to} end={n.to === '/'}
+                className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
+              >
+                <span className="icon">{n.icon}</span>
+                {n.label}
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+
       </div>
     </BrowserRouter>
   )

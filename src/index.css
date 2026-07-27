@@ -3,20 +3,15 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* palette */
   --bg:        #0A1628;
   --surface:   #0D2137;
   --surface2:  #112840;
   --surface3:  #163252;
   --border:    #1E3A52;
   --border2:   #254D6A;
-
-  /* text */
   --text:      #E2EBF6;
   --text2:     #94A3B8;
   --text3:     #4F6A84;
-
-  /* accent */
   --blue:      #2563EB;
   --blue-dim:  #1E3A6E;
   --green:     #10B981;
@@ -25,11 +20,8 @@
   --amber-dim: #2E1F04;
   --red:       #EF4444;
   --red-dim:   #2E0A0A;
-
-  /* type */
   --font:      'Inter', system-ui, sans-serif;
   --mono:      'IBM Plex Mono', monospace;
-
   --radius:    6px;
   --radius-lg: 10px;
 }
@@ -44,19 +36,16 @@ html, body, #root {
   -webkit-font-smoothing: antialiased;
 }
 
-/* scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-/* shared */
 .mono { font-family: var(--mono); }
 .label {
   font-size: 10px; font-weight: 600; letter-spacing: .08em;
   text-transform: uppercase; color: var(--text3);
 }
 
-/* pills */
 .pill {
   display: inline-flex; align-items: center;
   padding: 2px 8px; border-radius: 99px;
@@ -67,7 +56,6 @@ html, body, #root {
 .pill-green  { background: var(--green-dim); color: #6EE7B7; }
 .pill-blue   { background: var(--blue-dim);  color: #93C5FD; }
 
-/* cards */
 .card {
   background: var(--surface);
   border: 0.5px solid var(--border);
@@ -75,7 +63,6 @@ html, body, #root {
   padding: 20px;
 }
 
-/* tables */
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th {
   font-size: 11px; font-weight: 500; color: var(--text3);
@@ -91,7 +78,6 @@ html, body, #root {
 .data-table tr:hover td { background: var(--surface2); }
 .data-table td.mono { font-family: var(--mono); font-size: 12px; color: var(--text2); }
 
-/* buttons */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: var(--radius);
@@ -103,3 +89,75 @@ html, body, #root {
 .btn-primary:hover { background: #1D4ED8; }
 .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
 .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+/* ── Mobile bottom nav ── */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 0.5px solid var(--border);
+  padding: 8px 0 env(safe-area-inset-bottom);
+  z-index: 100;
+}
+.bottom-nav-inner {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+.bottom-nav-item {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+  padding: 6px 12px; border-radius: var(--radius);
+  text-decoration: none; font-size: 10px;
+  color: var(--text3); transition: all .12s;
+  font-family: var(--font);
+}
+.bottom-nav-item.active { color: var(--blue); }
+.bottom-nav-item span.icon { font-size: 18px; }
+
+/* ── Mobile cards (replace table rows) ── */
+.mobile-card-list { display: none; flex-direction: column; gap: 10px; }
+.mobile-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+}
+.mobile-card-row {
+  display: flex; justify-content: space-between;
+  align-items: center; margin-bottom: 6px;
+}
+.mobile-card-row:last-child { margin-bottom: 0; }
+.mobile-card-label { font-size: 11px; color: var(--text3); }
+.mobile-card-value { font-size: 13px; color: var(--text); font-weight: 500; }
+
+@media (max-width: 768px) {
+  /* Hide desktop sidebar */
+  aside.sidebar { display: none !important; }
+
+  /* Show bottom nav */
+  .bottom-nav { display: block; }
+
+  /* Add bottom padding so content isn't hidden behind nav */
+  main { padding-bottom: 70px; }
+
+  /* Hide tables, show mobile cards */
+  .data-table { display: none; }
+  .mobile-card-list { display: flex; }
+
+  /* Stack metrics grid */
+  .metrics-grid { grid-template-columns: 1fr 1fr !important; }
+
+  /* Stack two-col grid */
+  .grid2 { grid-template-columns: 1fr !important; }
+
+  /* Smaller padding on mobile */
+  .page-wrap { padding: 16px !important; }
+
+  /* Full width buttons on mobile */
+  .mobile-full { width: 100%; justify-content: center; }
+
+  /* Score ring smaller */
+  .score-wrap { flex-direction: column; align-items: center; }
+}
