@@ -16,101 +16,103 @@ import NotificationBell from './components/NotificationBell'
 import './index.css'
 
 const NAV = [
-  { to: '/',        icon: '▣', label: 'Dashboard'      },
+  { to: '/',        icon: '▣', label: 'Dashboard'    },
   { to: '/certs',   icon: '◈', label: 'Certifications' },
-  { to: '/tasks',   icon: '◎', label: 'Tasks'          },
-  { to: '/alerts',  icon: '△', label: 'Alerts'         },
-  { to: '/ai',      icon: '◆', label: 'AI'             },
-  { to: '/audit',   icon: '≡', label: 'Audit'          },
-  { to: '/users',   icon: '◉', label: 'Users'          },
+  { to: '/tasks',   icon: '◎', label: 'Tasks'         },
+  { to: '/alerts',  icon: '△', label: 'Alerts'        },
+  { to: '/ai',      icon: '◆', label: 'AI Assistant'  },
+  { to: '/audit',   icon: '≡', label: 'Audit Log'     },
+  { to: '/users',   icon: '◉', label: 'Users'         },
 ]
 
 function AppShell({ user, handleLogout }) {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
+      {/* Sidebar */}
       <aside className="sidebar" style={{
-        width: 220, flexShrink: 0,
-        background: 'var(--surface)',
-        borderRight: '0.5px solid var(--border)',
+        width: 240, flexShrink: 0,
+        background: 'var(--sidebar-bg)',
         display: 'flex', flexDirection: 'column',
-        padding: '0 0 16px'
+        padding: '0 0 20px'
       }}>
-        <div style={{
-          padding: '22px 20px 20px',
-          borderBottom: '0.5px solid var(--border)',
-          marginBottom: 8
-        }}>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 17, fontWeight: 500, letterSpacing: '.04em', color: 'var(--text)' }}>
-            Response<span style={{ color: 'var(--blue)' }}>OS</span>
+        <div style={{ padding: '24px 20px 20px', marginBottom: 4 }}>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 800, letterSpacing: '-.02em', color: '#FFFFFF' }}>
+            Response<span style={{ color: 'var(--sidebar-accent)' }}>OS</span>
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, letterSpacing: '.04em' }}>
+          <div style={{ fontSize: 11, color: 'var(--sidebar-text)', marginTop: 2, letterSpacing: '.04em', fontWeight: 500 }}>
             COMPLIANCE PLATFORM
           </div>
         </div>
 
-        <nav style={{ flex: 1, padding: '8px 10px' }}>
-          <div className="label" style={{ padding: '6px 10px', marginBottom: 4 }}>Platform</div>
+        <nav style={{ flex: 1, padding: '4px 12px' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#52525B', letterSpacing: '.08em', textTransform: 'uppercase', padding: '6px 8px', marginBottom: 4 }}>
+            Platform
+          </div>
           {NAV.map(n => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'}
               style={({ isActive }) => ({
                 display: 'flex', alignItems: 'center', gap: 10,
-                padding: '8px 10px', borderRadius: 'var(--radius)',
+                padding: '9px 10px', borderRadius: '8px',
                 marginBottom: 2, textDecoration: 'none',
-                fontSize: 13, fontWeight: isActive ? 500 : 400,
-                color: isActive ? 'var(--text)' : 'var(--text2)',
-                background: isActive ? 'var(--surface3)' : 'transparent',
-                borderLeft: isActive ? '2px solid var(--blue)' : '2px solid transparent',
+                fontSize: 13, fontWeight: isActive ? 600 : 400,
+                color: isActive ? '#FFFFFF' : 'var(--sidebar-text)',
+                background: isActive ? 'var(--sidebar-accent)' : 'transparent',
                 transition: 'all .12s'
               })}
             >
-              <span style={{ fontSize: 14, width: 16, textAlign: 'center' }}>{n.icon}</span>
+              <span style={{ fontSize: 15, width: 18, textAlign: 'center' }}>{n.icon}</span>
               {n.label}
             </NavLink>
           ))}
         </nav>
 
-        <div style={{ margin: '0 10px' }}>
-          <NavLink to="/profile"
-            style={({ isActive }) => ({
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '10px', borderRadius: 'var(--radius)',
-              background: isActive ? 'var(--surface3)' : 'var(--surface2)',
-              border: `0.5px solid ${isActive ? 'var(--blue)' : 'var(--border)'}`,
-              textDecoration: 'none', marginBottom: 8, transition: 'all .12s'
-            })}
-          >
+        <div style={{ padding: '0 12px' }}>
+          <NavLink to="/profile" style={({ isActive }) => ({
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px', borderRadius: '8px',
+            background: isActive ? 'var(--sidebar-accent)' : '#2C2C2E',
+            textDecoration: 'none', marginBottom: 8, transition: 'all .12s'
+          })}>
             <div style={{
-              width: 28, height: 28, borderRadius: '50%',
-              background: 'var(--blue-dim)', color: '#93C5FD',
+              width: 30, height: 30, borderRadius: '50%',
+              background: 'var(--sidebar-accent)', color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 600, flexShrink: 0
+              fontSize: 11, fontWeight: 700, flexShrink: 0
             }}>
               {user.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
             </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.full_name}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)' }}>
+              <div style={{ fontSize: 11, color: 'var(--sidebar-text)', fontWeight: 500 }}>
                 {user.role.toUpperCase()}
               </div>
             </div>
           </NavLink>
-          <button onClick={handleLogout} className="btn btn-ghost"
-            style={{ width: '100%', justifyContent: 'center', fontSize: 12 }}>
+          <button onClick={handleLogout} style={{
+            width: '100%', padding: '8px', borderRadius: '8px',
+            background: 'transparent', border: '1px solid #3F3F46',
+            color: 'var(--sidebar-text)', fontSize: 12, fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'var(--font)', transition: 'all .12s'
+          }}>
             Sign out
           </button>
         </div>
       </aside>
 
-      <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+      {/* Main */}
+      <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+
+        {/* Topbar */}
         <div style={{
-          padding: '12px 24px',
-          borderBottom: '0.5px solid var(--border)',
+          padding: '12px 28px',
+          borderBottom: '1px solid var(--border)',
           background: 'var(--surface)',
           display: 'flex', alignItems: 'center',
-          justifyContent: 'flex-end', gap: 10, flexShrink: 0
+          justifyContent: 'flex-end', gap: 10, flexShrink: 0,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
         }}>
           <Search />
           <NotificationBell />
@@ -126,11 +128,11 @@ function AppShell({ user, handleLogout }) {
             <Route path="/audit"   element={<AuditLog />} />
             <Route path="/users"   element={<Users />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="*"        element={<Navigate to="/" />} />
           </Routes>
         </div>
       </main>
 
+      {/* Mobile bottom nav */}
       <nav className="bottom-nav">
         <div className="bottom-nav-inner">
           {NAV.map(n => (
@@ -138,7 +140,7 @@ function AppShell({ user, handleLogout }) {
               className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
             >
               <span className="icon">{n.icon}</span>
-              {n.label}
+              {n.label.split(' ')[0]}
             </NavLink>
           ))}
           <NavLink to="/profile"

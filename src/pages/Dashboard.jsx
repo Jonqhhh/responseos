@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import PageHeader from '../components/PageHeader'
 import { useData } from '../lib/useData'
 import { getCertifications, getTasks, getAlerts } from '../lib/supabase'
@@ -16,7 +16,7 @@ function ScoreRing({ score }) {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     const cx = 70, cy = 70, r = 56, lw = 8
-    const color = score >= 80 ? '#10B981' : score >= 60 ? '#F59E0B' : '#EF4444'
+    const color = score >= 80 ? '#059669' : score >= 60 ? '#D97706' : '#DC2626'
     let current = 0
     const target = (score / 100) * Math.PI * 2
     const step = target / 60
@@ -24,7 +24,7 @@ function ScoreRing({ score }) {
       ctx.clearRect(0, 0, 140, 140)
       ctx.beginPath()
       ctx.arc(cx, cy, r, 0, Math.PI * 2)
-      ctx.strokeStyle = '#1E3A52'
+      ctx.strokeStyle = '#E4E6EF'
       ctx.lineWidth = lw
       ctx.stroke()
       ctx.beginPath()
@@ -38,7 +38,7 @@ function ScoreRing({ score }) {
     draw()
   }, [score])
 
-  const color = score >= 80 ? '#10B981' : score >= 60 ? '#F59E0B' : '#EF4444'
+  const color = score >= 80 ? '#059669' : score >= 60 ? '#D97706' : '#DC2626'
 
   return (
     <div style={{ position: 'relative', width: 140, height: 140, flexShrink: 0 }}>
@@ -47,10 +47,10 @@ function ScoreRing({ score }) {
         position: 'absolute', inset: 0, display: 'flex',
         flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
       }}>
-        <div style={{ fontSize: 30, fontWeight: 700, color, fontFamily: 'var(--mono)', lineHeight: 1 }}>
+        <div style={{ fontSize: 30, fontWeight: 800, color, fontFamily: 'var(--mono)', lineHeight: 1 }}>
           {score}%
         </div>
-        <div style={{ fontSize: 10, color: 'var(--text3)', letterSpacing: '.06em', marginTop: 4 }}>
+        <div style={{ fontSize: 10, color: 'var(--text3)', letterSpacing: '.06em', marginTop: 4, fontWeight: 600 }}>
           SCORE
         </div>
       </div>
@@ -62,11 +62,12 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div style={{
-        background: 'var(--surface2)', border: '0.5px solid var(--border)',
-        borderRadius: 8, padding: '10px 14px', fontSize: 13
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 8, padding: '10px 14px', fontSize: 13,
+        boxShadow: 'var(--shadow-md)'
       }}>
         <div style={{ color: 'var(--text2)', marginBottom: 4 }}>{label}</div>
-        <div style={{ color: '#3B7CFF', fontWeight: 600 }}>{payload[0].value}% compliance</div>
+        <div style={{ color: 'var(--blue)', fontWeight: 700 }}>{payload[0].value}% compliance</div>
       </div>
     )
   }
@@ -95,7 +96,6 @@ export default function Dashboard() {
   const tierColor = { critical: 'var(--red)', warning: 'var(--amber)', info: 'var(--blue)' }
   const tierBg    = { critical: 'var(--red-dim)', warning: 'var(--amber-dim)', info: 'var(--blue-dim)' }
 
-  // Simulated weekly trend — last 8 weeks leading to current score
   const trendData = [
     { week: '8w ago', score: Math.min(100, score + 22) },
     { week: '7w ago', score: Math.min(100, score + 18) },
@@ -107,55 +107,54 @@ export default function Dashboard() {
     { week: 'This week', score },
   ]
 
-  // Cert donut data
   const certData = [
-    { name: 'Valid', value: valid, color: '#10B981' },
-    { name: 'Expiring', value: expiring, color: '#F59E0B' },
-    { name: 'Expired', value: expired, color: '#EF4444' },
+    { name: 'Valid', value: valid, color: '#059669' },
+    { name: 'Expiring', value: expiring, color: '#D97706' },
+    { name: 'Expired', value: expired, color: '#DC2626' },
   ].filter(d => d.value > 0)
 
-  // Task breakdown
   const taskData = [
-    { name: 'Complete', value: t.filter(x => x.status === 'complete').length, color: '#10B981' },
-    { name: 'In progress', value: t.filter(x => x.status === 'in_progress').length, color: '#F59E0B' },
-    { name: 'Scheduled', value: t.filter(x => x.status === 'scheduled').length, color: '#3B7CFF' },
-    { name: 'Overdue', value: overdue, color: '#EF4444' },
+    { name: 'Complete', value: t.filter(x => x.status === 'complete').length, color: '#059669' },
+    { name: 'In progress', value: t.filter(x => x.status === 'in_progress').length, color: '#D97706' },
+    { name: 'Scheduled', value: t.filter(x => x.status === 'scheduled').length, color: '#6B4EFF' },
+    { name: 'Overdue', value: overdue, color: '#DC2626' },
   ].filter(d => d.value > 0)
 
   return (
-    <div className="page-wrap" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         title="Dashboard"
-        subtitle={`ResponseOS · ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`}
+        subtitle={`${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`}
       />
 
-      {/* Score + metrics */}
-      <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr 1fr', gap: 14 }}>
+      {/* Metrics */}
+      <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr 1fr', gap: 16 }}>
         <div className="card score-wrap" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <ScoreRing score={score} />
           <div>
             <div className="label" style={{ marginBottom: 8 }}>Compliance score</div>
-            <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7 }}>
-              <span style={{ color: 'var(--red)', fontWeight: 500 }}>{expired} expired</span> cert{expired !== 1 ? 's' : ''}<br />
-              <span style={{ color: 'var(--amber)', fontWeight: 500 }}>{expiring} expiring</span> soon<br />
-              <span style={{ color: 'var(--red)', fontWeight: 500 }}>{overdue} overdue</span> tasks
+            <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.8 }}>
+              <span style={{ color: 'var(--red)', fontWeight: 600 }}>{expired} expired</span> cert{expired !== 1 ? 's' : ''}<br />
+              <span style={{ color: 'var(--amber)', fontWeight: 600 }}>{expiring} expiring</span> soon<br />
+              <span style={{ color: 'var(--red)', fontWeight: 600 }}>{overdue} overdue</span> tasks
             </div>
           </div>
         </div>
+
         {[
-          { label: 'Certifications', value: c.length, sub: `${valid} valid · ${expiring} expiring`, subColor: 'var(--text2)' },
-          { label: 'Open tasks', value: t.filter(x => x.status !== 'complete').length, sub: `${overdue} overdue`, subColor: 'var(--red)' },
-          { label: 'Unread alerts', value: unread, sub: `${a.filter(x => x.tier === 'critical' && !x.acknowledged).length} critical`, subColor: 'var(--red)' },
+          { label: 'Certifications', value: c.length, sub: `${valid} valid · ${expiring} expiring`, subColor: 'var(--text2)', accent: 'var(--blue)' },
+          { label: 'Open tasks', value: t.filter(x => x.status !== 'complete').length, sub: `${overdue} overdue`, subColor: overdue > 0 ? 'var(--red)' : 'var(--text2)', accent: overdue > 0 ? 'var(--red)' : 'var(--blue)' },
+          { label: 'Unread alerts', value: unread, sub: `${a.filter(x => x.tier === 'critical' && !x.acknowledged).length} critical`, subColor: unread > 0 ? 'var(--red)' : 'var(--text2)', accent: unread > 0 ? 'var(--red)' : 'var(--blue)' },
         ].map(m => (
-          <div key={m.label} className="card">
-            <div className="label" style={{ marginBottom: 6 }}>{m.label}</div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--mono)', lineHeight: 1 }}>{m.value}</div>
-            <div style={{ fontSize: 12, color: m.subColor, marginTop: 5 }}>{m.sub}</div>
+          <div key={m.label} className="card" style={{ borderTop: `3px solid ${m.accent}` }}>
+            <div className="label" style={{ marginBottom: 8 }}>{m.label}</div>
+            <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--text)', lineHeight: 1, marginBottom: 6 }}>{m.value}</div>
+            <div style={{ fontSize: 12, color: m.subColor, fontWeight: 500 }}>{m.sub}</div>
           </div>
         ))}
       </div>
 
-      {/* Mobile score card */}
+      {/* Mobile score */}
       <div style={{ display: 'none' }} className="mobile-score-card">
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <ScoreRing score={score} />
@@ -169,8 +168,8 @@ export default function Dashboard() {
                 { label: 'Alerts', value: unread, color: unread > 0 ? 'var(--red)' : 'var(--text)' },
               ].map(m => (
                 <div key={m.label}>
-                  <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{m.label}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: m.color, fontFamily: 'var(--mono)' }}>{m.value}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>{m.label}</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: m.color, fontFamily: 'var(--mono)' }}>{m.value}</div>
                 </div>
               ))}
             </div>
@@ -178,45 +177,34 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Charts row */}
-      <div className="grid2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-
-        {/* Compliance trend */}
+      {/* Charts */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
         <div className="card" style={{ gridColumn: 'span 2' }}>
           <div className="label" style={{ marginBottom: 16 }}>Compliance score trend</div>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={trendData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-              <XAxis dataKey="week" tick={{ fill: '#4F6A84', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis domain={[0, 100]} tick={{ fill: '#4F6A84', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="week" tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, 100]} tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
               <Line
                 type="monotone" dataKey="score"
-                stroke="#2563EB" strokeWidth={2.5}
-                dot={{ fill: '#2563EB', strokeWidth: 0, r: 3 }}
-                activeDot={{ r: 5, fill: '#2563EB' }}
+                stroke="#6B4EFF" strokeWidth={2.5}
+                dot={{ fill: '#6B4EFF', strokeWidth: 0, r: 3 }}
+                activeDot={{ r: 5, fill: '#6B4EFF' }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Cert donut */}
         <div className="card">
           <div className="label" style={{ marginBottom: 16 }}>Certification status</div>
           {certData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie
-                  data={certData} cx="50%" cy="45%"
-                  innerRadius={50} outerRadius={75}
-                  paddingAngle={3} dataKey="value"
-                >
-                  {certData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
+                <Pie data={certData} cx="50%" cy="45%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
+                  {certData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
-                <Legend
-                  formatter={(value) => <span style={{ color: 'var(--text2)', fontSize: 12 }}>{value}</span>}
-                />
+                <Legend formatter={(value) => <span style={{ color: 'var(--text2)', fontSize: 12, fontWeight: 500 }}>{value}</span>} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -227,27 +215,16 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Task breakdown + recent alerts */}
-      <div className="grid2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-
-        {/* Task donut */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div className="card">
           <div className="label" style={{ marginBottom: 16 }}>Task breakdown</div>
           {taskData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie
-                  data={taskData} cx="50%" cy="45%"
-                  innerRadius={50} outerRadius={75}
-                  paddingAngle={3} dataKey="value"
-                >
-                  {taskData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
+                <Pie data={taskData} cx="50%" cy="45%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
+                  {taskData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
-                <Legend
-                  formatter={(value) => <span style={{ color: 'var(--text2)', fontSize: 12 }}>{value}</span>}
-                />
+                <Legend formatter={(value) => <span style={{ color: 'var(--text2)', fontSize: 12, fontWeight: 500 }}>{value}</span>} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -257,29 +234,28 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Recent alerts */}
         <div className="card">
           <div className="label" style={{ marginBottom: 14 }}>Recent alerts</div>
           {a.length === 0 && (
-            <div style={{ fontSize: 13, color: 'var(--text3)' }}>No alerts — all clear.</div>
+            <div style={{ fontSize: 13, color: 'var(--text3)', padding: '20px 0', textAlign: 'center' }}>No alerts — all clear.</div>
           )}
           {a.slice(0, 4).map(al => (
             <div key={al.id} style={{
               display: 'flex', gap: 12, alignItems: 'flex-start',
-              padding: '10px 0', borderBottom: '0.5px solid var(--border)'
+              padding: '10px 0', borderBottom: '1px solid var(--border)'
             }}>
               <div style={{
-                width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                width: 30, height: 30, borderRadius: 8, flexShrink: 0,
                 background: tierBg[al.tier], color: tierColor[al.tier],
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700
               }}>
                 {al.tier === 'critical' ? '▲' : al.tier === 'warning' ? '●' : 'ℹ'}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
                   {al.message}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)', marginTop: 3 }}>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, fontWeight: 500 }}>
                   {al.tier.toUpperCase()} · {new Date(al.created_at).toLocaleDateString()}
                   {!al.acknowledged && <span style={{ color: 'var(--red)', marginLeft: 8 }}>● Unread</span>}
                 </div>
@@ -289,9 +265,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Task overview table */}
+      {/* Task table */}
       <div className="card">
-        <div className="label" style={{ marginBottom: 14 }}>Team task overview</div>
+        <div className="label" style={{ marginBottom: 16 }}>Team task overview</div>
         <table className="data-table">
           <thead>
             <tr><th>Employee</th><th>Task</th><th>Type</th><th>Due date</th><th>Status</th></tr>
@@ -302,10 +278,10 @@ export default function Dashboard() {
             )}
             {t.map(tk => (
               <tr key={tk.id}>
-                <td style={{ fontWeight: 500 }}>{tk.users?.full_name}</td>
+                <td style={{ fontWeight: 600 }}>{tk.users?.full_name}</td>
                 <td>{tk.title}</td>
-                <td className="mono">{tk.type}</td>
-                <td className="mono" style={{ color: tk.status === 'overdue' ? 'var(--red)' : 'var(--text2)' }}>{tk.due_date}</td>
+                <td style={{ color: 'var(--text2)', fontFamily: 'var(--mono)', fontSize: 12 }}>{tk.type}</td>
+                <td style={{ color: tk.status === 'overdue' ? 'var(--red)' : 'var(--text2)', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: tk.status === 'overdue' ? 600 : 400 }}>{tk.due_date}</td>
                 <td>
                   <span className={`pill pill-${tk.status === 'overdue' ? 'red' : tk.status === 'in_progress' ? 'amber' : tk.status === 'complete' ? 'green' : 'blue'}`}>
                     {tk.status.replace('_', ' ')}
@@ -325,7 +301,7 @@ export default function Dashboard() {
             borderLeft: `3px solid ${tk.status === 'overdue' ? 'var(--red)' : tk.status === 'in_progress' ? 'var(--amber)' : tk.status === 'complete' ? 'var(--green)' : 'var(--blue)'}`
           }}>
             <div className="mobile-card-row">
-              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{tk.title}</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{tk.title}</span>
               <span className={`pill pill-${tk.status === 'overdue' ? 'red' : tk.status === 'in_progress' ? 'amber' : tk.status === 'complete' ? 'green' : 'blue'}`}>
                 {tk.status.replace('_', ' ')}
               </span>
@@ -343,7 +319,6 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
-
     </div>
   )
 }
