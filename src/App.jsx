@@ -10,6 +10,7 @@ import AIAssistant from './pages/AIAssistant'
 import Users from './pages/Users'
 import Profile from './pages/Profile'
 import Login from './pages/Login'
+import Search from './components/Search'
 import './index.css'
 
 const NAV = [
@@ -110,7 +111,7 @@ export default function App() {
             ))}
           </nav>
 
-          {/* User profile link at bottom */}
+          {/* User profile link */}
           <div style={{ margin: '0 10px' }}>
             <NavLink to="/profile"
               style={({ isActive }) => ({
@@ -147,22 +148,36 @@ export default function App() {
 
         {/* Main content */}
         <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-          <Routes>
-            <Route path="/"        element={<Dashboard />} />
-            <Route path="/certs"   element={<Certifications />} />
-            <Route path="/tasks"   element={<Tasks />} />
-            <Route path="/alerts"  element={<Alerts />} />
-            <Route path="/ai"      element={<AIAssistant />} />
-            <Route path="/audit"   element={<AuditLog />} />
-            <Route path="/users"   element={<Users />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="*"        element={<Navigate to="/" />} />
-          </Routes>
+
+          {/* Topbar with search */}
+          <div style={{
+            padding: '12px 24px',
+            borderBottom: '0.5px solid var(--border)',
+            background: 'var(--surface)',
+            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+            flexShrink: 0
+          }}>
+            <Search />
+          </div>
+
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            <Routes>
+              <Route path="/"        element={<Dashboard />} />
+              <Route path="/certs"   element={<Certifications />} />
+              <Route path="/tasks"   element={<Tasks />} />
+              <Route path="/alerts"  element={<Alerts />} />
+              <Route path="/ai"      element={<AIAssistant />} />
+              <Route path="/audit"   element={<AuditLog />} />
+              <Route path="/users"   element={<Users />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="*"        element={<Navigate to="/" />} />
+            </Routes>
+          </div>
         </main>
 
         {/* Mobile bottom nav */}
         <nav className="bottom-nav">
-          <div class="bottom-nav-inner">
+          <div className="bottom-nav-inner">
             {NAV.map(n => (
               <NavLink key={n.to} to={n.to} end={n.to === '/'}
                 className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
