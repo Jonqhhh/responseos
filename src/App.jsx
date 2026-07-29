@@ -11,6 +11,7 @@ import Users from './pages/Users'
 import Profile from './pages/Profile'
 import Login from './pages/Login'
 import Search from './components/Search'
+import NotificationBell from './components/NotificationBell'
 import './index.css'
 
 const NAV = [
@@ -149,15 +150,16 @@ export default function App() {
         {/* Main content */}
         <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
 
-          {/* Topbar with search */}
+          {/* Topbar */}
           <div style={{
             padding: '12px 24px',
             borderBottom: '0.5px solid var(--border)',
             background: 'var(--surface)',
-            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-            flexShrink: 0
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'flex-end', gap: 10, flexShrink: 0
           }}>
             <Search />
+            <NotificationBell />
           </div>
 
           <div style={{ flex: 1, overflow: 'auto' }}>
