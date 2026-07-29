@@ -10,6 +10,7 @@ import AIAssistant from './pages/AIAssistant'
 import Users from './pages/Users'
 import Profile from './pages/Profile'
 import Login from './pages/Login'
+import Landing from './pages/Landing'
 import Search from './components/Search'
 import NotificationBell from './components/NotificationBell'
 import './index.css'
@@ -23,6 +24,134 @@ const NAV = [
   { to: '/audit',   icon: '≡', label: 'Audit'          },
   { to: '/users',   icon: '◉', label: 'Users'          },
 ]
+
+function AppShell({ user, handleLogout }) {
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+
+      <aside className="sidebar" style={{
+        width: 220, flexShrink: 0,
+        background: 'var(--surface)',
+        borderRight: '0.5px solid var(--border)',
+        display: 'flex', flexDirection: 'column',
+        padding: '0 0 16px'
+      }}>
+        <div style={{
+          padding: '22px 20px 20px',
+          borderBottom: '0.5px solid var(--border)',
+          marginBottom: 8
+        }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 17, fontWeight: 500, letterSpacing: '.04em', color: 'var(--text)' }}>
+            Response<span style={{ color: 'var(--blue)' }}>OS</span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, letterSpacing: '.04em' }}>
+            COMPLIANCE PLATFORM
+          </div>
+        </div>
+
+        <nav style={{ flex: 1, padding: '8px 10px' }}>
+          <div className="label" style={{ padding: '6px 10px', marginBottom: 4 }}>Platform</div>
+          {NAV.map(n => (
+            <NavLink key={n.to} to={n.to} end={n.to === '/'}
+              style={({ isActive }) => ({
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '8px 10px', borderRadius: 'var(--radius)',
+                marginBottom: 2, textDecoration: 'none',
+                fontSize: 13, fontWeight: isActive ? 500 : 400,
+                color: isActive ? 'var(--text)' : 'var(--text2)',
+                background: isActive ? 'var(--surface3)' : 'transparent',
+                borderLeft: isActive ? '2px solid var(--blue)' : '2px solid transparent',
+                transition: 'all .12s'
+              })}
+            >
+              <span style={{ fontSize: 14, width: 16, textAlign: 'center' }}>{n.icon}</span>
+              {n.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div style={{ margin: '0 10px' }}>
+          <NavLink to="/profile"
+            style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px', borderRadius: 'var(--radius)',
+              background: isActive ? 'var(--surface3)' : 'var(--surface2)',
+              border: `0.5px solid ${isActive ? 'var(--blue)' : 'var(--border)'}`,
+              textDecoration: 'none', marginBottom: 8, transition: 'all .12s'
+            })}
+          >
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'var(--blue-dim)', color: '#93C5FD',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 600, flexShrink: 0
+            }}>
+              {user.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
+                {user.full_name}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)' }}>
+                {user.role.toUpperCase()}
+              </div>
+            </div>
+          </NavLink>
+          <button onClick={handleLogout} className="btn btn-ghost"
+            style={{ width: '100%', justifyContent: 'center', fontSize: 12 }}>
+            Sign out
+          </button>
+        </div>
+      </aside>
+
+      <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div style={{
+          padding: '12px 24px',
+          borderBottom: '0.5px solid var(--border)',
+          background: 'var(--surface)',
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'flex-end', gap: 10, flexShrink: 0
+        }}>
+          <Search />
+          <NotificationBell />
+        </div>
+
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <Routes>
+            <Route path="/"        element={<Dashboard />} />
+            <Route path="/certs"   element={<Certifications />} />
+            <Route path="/tasks"   element={<Tasks />} />
+            <Route path="/alerts"  element={<Alerts />} />
+            <Route path="/ai"      element={<AIAssistant />} />
+            <Route path="/audit"   element={<AuditLog />} />
+            <Route path="/users"   element={<Users />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="*"        element={<Navigate to="/" />} />
+          </Routes>
+        </div>
+      </main>
+
+      <nav className="bottom-nav">
+        <div className="bottom-nav-inner">
+          {NAV.map(n => (
+            <NavLink key={n.to} to={n.to} end={n.to === '/'}
+              className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
+            >
+              <span className="icon">{n.icon}</span>
+              {n.label}
+            </NavLink>
+          ))}
+          <NavLink to="/profile"
+            className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
+          >
+            <span className="icon">○</span>
+            Profile
+          </NavLink>
+        </div>
+      </nav>
+    </div>
+  )
+}
 
 export default function App() {
   const [user, setUser] = useState(null)
@@ -64,140 +193,13 @@ export default function App() {
     </div>
   )
 
-  if (!user) return <Login onLogin={setUser} />
-
   return (
     <BrowserRouter>
-      <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-
-        {/* Desktop sidebar */}
-        <aside className="sidebar" style={{
-          width: 220, flexShrink: 0,
-          background: 'var(--surface)',
-          borderRight: '0.5px solid var(--border)',
-          display: 'flex', flexDirection: 'column',
-          padding: '0 0 16px'
-        }}>
-          <div style={{
-            padding: '22px 20px 20px',
-            borderBottom: '0.5px solid var(--border)',
-            marginBottom: 8
-          }}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 17, fontWeight: 500, letterSpacing: '.04em', color: 'var(--text)' }}>
-              Response<span style={{ color: 'var(--blue)' }}>OS</span>
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, letterSpacing: '.04em' }}>
-              COMPLIANCE PLATFORM
-            </div>
-          </div>
-
-          <nav style={{ flex: 1, padding: '8px 10px' }}>
-            <div className="label" style={{ padding: '6px 10px', marginBottom: 4 }}>Platform</div>
-            {NAV.map(n => (
-              <NavLink key={n.to} to={n.to} end={n.to === '/'}
-                style={({ isActive }) => ({
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 10px', borderRadius: 'var(--radius)',
-                  marginBottom: 2, textDecoration: 'none',
-                  fontSize: 13, fontWeight: isActive ? 500 : 400,
-                  color: isActive ? 'var(--text)' : 'var(--text2)',
-                  background: isActive ? 'var(--surface3)' : 'transparent',
-                  borderLeft: isActive ? '2px solid var(--blue)' : '2px solid transparent',
-                  transition: 'all .12s'
-                })}
-              >
-                <span style={{ fontSize: 14, width: 16, textAlign: 'center' }}>{n.icon}</span>
-                {n.label}
-              </NavLink>
-            ))}
-          </nav>
-
-          {/* User profile link */}
-          <div style={{ margin: '0 10px' }}>
-            <NavLink to="/profile"
-              style={({ isActive }) => ({
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px', borderRadius: 'var(--radius)',
-                background: isActive ? 'var(--surface3)' : 'var(--surface2)',
-                border: `0.5px solid ${isActive ? 'var(--blue)' : 'var(--border)'}`,
-                textDecoration: 'none', marginBottom: 8, transition: 'all .12s'
-              })}
-            >
-              <div style={{
-                width: 28, height: 28, borderRadius: '50%',
-                background: 'var(--blue-dim)', color: '#93C5FD',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 11, fontWeight: 600, flexShrink: 0
-              }}>
-                {user.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
-                  {user.full_name}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)' }}>
-                  {user.role.toUpperCase()}
-                </div>
-              </div>
-            </NavLink>
-            <button onClick={handleLogout} className="btn btn-ghost"
-              style={{ width: '100%', justifyContent: 'center', fontSize: 12 }}>
-              Sign out
-            </button>
-          </div>
-        </aside>
-
-        {/* Main content */}
-        <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-
-          {/* Topbar */}
-          <div style={{
-            padding: '12px 24px',
-            borderBottom: '0.5px solid var(--border)',
-            background: 'var(--surface)',
-            display: 'flex', alignItems: 'center',
-            justifyContent: 'flex-end', gap: 10, flexShrink: 0
-          }}>
-            <Search />
-            <NotificationBell />
-          </div>
-
-          <div style={{ flex: 1, overflow: 'auto' }}>
-            <Routes>
-              <Route path="/"        element={<Dashboard />} />
-              <Route path="/certs"   element={<Certifications />} />
-              <Route path="/tasks"   element={<Tasks />} />
-              <Route path="/alerts"  element={<Alerts />} />
-              <Route path="/ai"      element={<AIAssistant />} />
-              <Route path="/audit"   element={<AuditLog />} />
-              <Route path="/users"   element={<Users />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="*"        element={<Navigate to="/" />} />
-            </Routes>
-          </div>
-        </main>
-
-        {/* Mobile bottom nav */}
-        <nav className="bottom-nav">
-          <div className="bottom-nav-inner">
-            {NAV.map(n => (
-              <NavLink key={n.to} to={n.to} end={n.to === '/'}
-                className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
-              >
-                <span className="icon">{n.icon}</span>
-                {n.label}
-              </NavLink>
-            ))}
-            <NavLink to="/profile"
-              className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
-            >
-              <span className="icon">○</span>
-              Profile
-            </NavLink>
-          </div>
-        </nav>
-
-      </div>
+      <Routes>
+        <Route path="/home"  element={<Landing />} />
+        <Route path="/login" element={user ? <Navigate to="/" /> : <Login onLogin={setUser} />} />
+        <Route path="/*"     element={user ? <AppShell user={user} handleLogout={handleLogout} /> : <Navigate to="/home" />} />
+      </Routes>
     </BrowserRouter>
   )
 }
