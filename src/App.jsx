@@ -8,17 +8,18 @@ import Alerts from './pages/Alerts'
 import AuditLog from './pages/AuditLog'
 import AIAssistant from './pages/AIAssistant'
 import Users from './pages/Users'
+import Profile from './pages/Profile'
 import Login from './pages/Login'
 import './index.css'
 
 const NAV = [
-  { to: '/',       icon: '▣', label: 'Dashboard'      },
-  { to: '/certs',  icon: '◈', label: 'Certifications' },
-  { to: '/tasks',  icon: '◎', label: 'Tasks'          },
-  { to: '/alerts', icon: '△', label: 'Alerts'         },
-  { to: '/ai',     icon: '◆', label: 'AI'             },
-  { to: '/audit',  icon: '≡', label: 'Audit'          },
-  { to: '/users',  icon: '◉', label: 'Users'          },
+  { to: '/',        icon: '▣', label: 'Dashboard'      },
+  { to: '/certs',   icon: '◈', label: 'Certifications' },
+  { to: '/tasks',   icon: '◎', label: 'Tasks'          },
+  { to: '/alerts',  icon: '△', label: 'Alerts'         },
+  { to: '/ai',      icon: '◆', label: 'AI'             },
+  { to: '/audit',   icon: '≡', label: 'Audit'          },
+  { to: '/users',   icon: '◉', label: 'Users'          },
 ]
 
 export default function App() {
@@ -109,18 +110,34 @@ export default function App() {
             ))}
           </nav>
 
+          {/* User profile link at bottom */}
           <div style={{ margin: '0 10px' }}>
-            <div style={{
-              padding: '10px', background: 'var(--surface2)',
-              borderRadius: 'var(--radius)', border: '0.5px solid var(--border)', marginBottom: 8
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>
-                {user.full_name}
+            <NavLink to="/profile"
+              style={({ isActive }) => ({
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px', borderRadius: 'var(--radius)',
+                background: isActive ? 'var(--surface3)' : 'var(--surface2)',
+                border: `0.5px solid ${isActive ? 'var(--blue)' : 'var(--border)'}`,
+                textDecoration: 'none', marginBottom: 8, transition: 'all .12s'
+              })}
+            >
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%',
+                background: 'var(--blue-dim)', color: '#93C5FD',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 600, flexShrink: 0
+              }}>
+                {user.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)' }}>
-                {user.role.toUpperCase()}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
+                  {user.full_name}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)' }}>
+                  {user.role.toUpperCase()}
+                </div>
               </div>
-            </div>
+            </NavLink>
             <button onClick={handleLogout} className="btn btn-ghost"
               style={{ width: '100%', justifyContent: 'center', fontSize: 12 }}>
               Sign out
@@ -131,20 +148,21 @@ export default function App() {
         {/* Main content */}
         <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <Routes>
-            <Route path="/"       element={<Dashboard />} />
-            <Route path="/certs"  element={<Certifications />} />
-            <Route path="/tasks"  element={<Tasks />} />
-            <Route path="/alerts" element={<Alerts />} />
-            <Route path="/ai"     element={<AIAssistant />} />
-            <Route path="/audit"  element={<AuditLog />} />
-            <Route path="/users"  element={<Users />} />
-            <Route path="*"       element={<Navigate to="/" />} />
+            <Route path="/"        element={<Dashboard />} />
+            <Route path="/certs"   element={<Certifications />} />
+            <Route path="/tasks"   element={<Tasks />} />
+            <Route path="/alerts"  element={<Alerts />} />
+            <Route path="/ai"      element={<AIAssistant />} />
+            <Route path="/audit"   element={<AuditLog />} />
+            <Route path="/users"   element={<Users />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="*"        element={<Navigate to="/" />} />
           </Routes>
         </main>
 
         {/* Mobile bottom nav */}
         <nav className="bottom-nav">
-          <div className="bottom-nav-inner">
+          <div class="bottom-nav-inner">
             {NAV.map(n => (
               <NavLink key={n.to} to={n.to} end={n.to === '/'}
                 className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
@@ -153,6 +171,12 @@ export default function App() {
                 {n.label}
               </NavLink>
             ))}
+            <NavLink to="/profile"
+              className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
+            >
+              <span className="icon">○</span>
+              Profile
+            </NavLink>
           </div>
         </nav>
 
