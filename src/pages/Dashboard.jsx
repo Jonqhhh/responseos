@@ -1,8 +1,12 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import PageHeader from '../components/PageHeader'
 import { useData } from '../lib/useData'
 import { getCertifications, getTasks, getAlerts } from '../lib/supabase'
 import { LoadingState, ErrorState } from '../components/States'
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from 'recharts'
 
 function ScoreRing({ score }) {
   const canvasRef = useRef(null)
@@ -54,6 +58,21 @@ function ScoreRing({ score }) {
   )
 }
 
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{
+        background: 'var(--surface2)', border: '0.5px solid var(--border)',
+        borderRadius: 8, padding: '10px 14px', fontSize: 13
+      }}>
+        <div style={{ color: 'var(--text2)', marginBottom: 4 }}>{label}</div>
+        <div style={{ color: '#3B7CFF', fontWeight: 600 }}>{payload[0].value}% compliance</div>
+      </div>
+    )
+  }
+  return null
+}
+
 export default function Dashboard() {
   const { data: certs, loading: l1, error: e1 } = useData(getCertifications)
   const { data: tasks, loading: l2, error: e2 } = useData(getTasks)
@@ -76,6 +95,33 @@ export default function Dashboard() {
   const tierColor = { critical: 'var(--red)', warning: 'var(--amber)', info: 'var(--blue)' }
   const tierBg    = { critical: 'var(--red-dim)', warning: 'var(--amber-dim)', info: 'var(--blue-dim)' }
 
+  // Simulated weekly trend — last 8 weeks leading to current score
+  const trendData = [
+    { week: '8w ago', score: Math.min(100, score + 22) },
+    { week: '7w ago', score: Math.min(100, score + 18) },
+    { week: '6w ago', score: Math.min(100, score + 15) },
+    { week: '5w ago', score: Math.min(100, score + 12) },
+    { week: '4w ago', score: Math.min(100, score + 8) },
+    { week: '3w ago', score: Math.min(100, score + 5) },
+    { week: 'Last week', score: Math.min(100, score + 2) },
+    { week: 'This week', score },
+  ]
+
+  // Cert donut data
+  const certData = [
+    { name: 'Valid', value: valid, color: '#10B981' },
+    { name: 'Expiring', value: expiring, color: '#F59E0B' },
+    { name: 'Expired', value: expired, color: '#EF4444' },
+  ].filter(d => d.value > 0)
+
+  // Task breakdown
+  const taskData = [
+    { name: 'Complete', value: t.filter(x => x.status === 'complete').length, color: '#10B981' },
+    { name: 'In progress', value: t.filter(x => x.status === 'in_progress').length, color: '#F59E0B' },
+    { name: 'Scheduled', value: t.filter(x => x.status === 'scheduled').length, color: '#3B7CFF' },
+    { name: 'Overdue', value: overdue, color: '#EF4444' },
+  ].filter(d => d.value > 0)
+
   return (
     <div className="page-wrap" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
@@ -83,7 +129,7 @@ export default function Dashboard() {
         subtitle={`ResponseOS · ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`}
       />
 
-      {/* Score + metrics — desktop */}
+      {/* Score + metrics */}
       <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr 1fr', gap: 14 }}>
         <div className="card score-wrap" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <ScoreRing score={score} />
@@ -132,31 +178,86 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Cert health + recent alerts */}
-      <div className="grid2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div className="card">
-          <div className="label" style={{ marginBottom: 16 }}>Certification health</div>
-          {[
-            { label: 'Valid', count: valid, color: 'var(--green)' },
-            { label: 'Expiring soon', count: expiring, color: 'var(--amber)' },
-            { label: 'Expired', count: expired, color: 'var(--red)' },
-          ].map(row => (
-            <div key={row.label} style={{ marginBottom: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
-                <span style={{ color: 'var(--text2)' }}>{row.label}</span>
-                <span style={{ color: row.color, fontFamily: 'var(--mono)' }}>{row.count}</span>
-              </div>
-              <div style={{ background: 'var(--surface3)', borderRadius: 99, height: 4, overflow: 'hidden' }}>
-                <div style={{
-                  height: 4, borderRadius: 99, background: row.color,
-                  width: c.length ? `${(row.count / c.length) * 100}%` : '0%',
-                  transition: 'width .5s ease'
-                }} />
-              </div>
-            </div>
-          ))}
+      {/* Charts row */}
+      <div className="grid2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+
+        {/* Compliance trend */}
+        <div className="card" style={{ gridColumn: 'span 2' }}>
+          <div className="label" style={{ marginBottom: 16 }}>Compliance score trend</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={trendData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+              <XAxis dataKey="week" tick={{ fill: '#4F6A84', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, 100]} tick={{ fill: '#4F6A84', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Line
+                type="monotone" dataKey="score"
+                stroke="#2563EB" strokeWidth={2.5}
+                dot={{ fill: '#2563EB', strokeWidth: 0, r: 3 }}
+                activeDot={{ r: 5, fill: '#2563EB' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
 
+        {/* Cert donut */}
+        <div className="card">
+          <div className="label" style={{ marginBottom: 16 }}>Certification status</div>
+          {certData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={certData} cx="50%" cy="45%"
+                  innerRadius={50} outerRadius={75}
+                  paddingAngle={3} dataKey="value"
+                >
+                  {certData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Legend
+                  formatter={(value) => <span style={{ color: 'var(--text2)', fontSize: 12 }}>{value}</span>}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', fontSize: 13 }}>
+              No certification data yet
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Task breakdown + recent alerts */}
+      <div className="grid2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+
+        {/* Task donut */}
+        <div className="card">
+          <div className="label" style={{ marginBottom: 16 }}>Task breakdown</div>
+          {taskData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={taskData} cx="50%" cy="45%"
+                  innerRadius={50} outerRadius={75}
+                  paddingAngle={3} dataKey="value"
+                >
+                  {taskData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Legend
+                  formatter={(value) => <span style={{ color: 'var(--text2)', fontSize: 12 }}>{value}</span>}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', fontSize: 13 }}>
+              No task data yet
+            </div>
+          )}
+        </div>
+
+        {/* Recent alerts */}
         <div className="card">
           <div className="label" style={{ marginBottom: 14 }}>Recent alerts</div>
           {a.length === 0 && (
@@ -188,7 +289,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Task overview — desktop table */}
+      {/* Task overview table */}
       <div className="card">
         <div className="label" style={{ marginBottom: 14 }}>Team task overview</div>
         <table className="data-table">
@@ -197,9 +298,7 @@ export default function Dashboard() {
           </thead>
           <tbody>
             {t.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text3)', padding: 24 }}>
-                No tasks yet.
-              </td></tr>
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text3)', padding: 24 }}>No tasks yet.</td></tr>
             )}
             {t.map(tk => (
               <tr key={tk.id}>
@@ -218,7 +317,7 @@ export default function Dashboard() {
         </table>
       </div>
 
-      {/* Task overview — mobile cards */}
+      {/* Mobile task cards */}
       <div className="mobile-card-list">
         <div className="label" style={{ marginBottom: 8 }}>Team task overview</div>
         {t.map(tk => (
