@@ -33,25 +33,42 @@ export default function AuditLog() {
   if (error)   return <ErrorState message={error} />
 
   return (
-    <div className="page-wrap" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         title="Audit Log"
         subtitle="Immutable, time-stamped record of every action on the platform."
         action={
           <button className="btn btn-ghost mobile-full" onClick={() => exportCSV(logs)}>
-            Export CSV
+            ↓ Export CSV
           </button>
         }
       />
 
-      <div className="card" style={{
-        padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8,
-        borderLeft: '3px solid var(--green)'
+      {/* FERC badge */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        background: '#ECFDF5', border: '1px solid #A7F3D0',
+        borderRadius: 10, padding: '12px 16px'
       }}>
-        <span style={{ fontSize: 13, color: 'var(--text2)' }}>
-          Audit log is <span style={{ color: 'var(--green)', fontWeight: 500 }}>tamper-protected</span> —
-          records are immutable and time-stamped. Suitable for FERC regulatory review.
-        </span>
+        <div style={{
+          width: 32, height: 32, borderRadius: 8,
+          background: '#059669', color: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 16, flexShrink: 0
+        }}>✓</div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#065F46' }}>Tamper-protected audit log</div>
+          <div style={{ fontSize: 12, color: '#059669' }}>Records are immutable and time-stamped. Suitable for FERC regulatory review.</div>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          {['FERC', 'NERC', 'SOC 2'].map(b => (
+            <span key={b} style={{
+              padding: '3px 10px', borderRadius: 99, fontSize: 11,
+              fontWeight: 700, background: '#fff', color: '#059669',
+              border: '1px solid #A7F3D0'
+            }}>{b}</span>
+          ))}
+        </div>
       </div>
 
       {/* Desktop table */}
@@ -64,26 +81,32 @@ export default function AuditLog() {
           </thead>
           <tbody>
             {logs.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text3)', padding: 24 }}>
+              <tr><td colSpan={6} style={{ textAlign: 'center', color: '#9CA3AF', padding: 32 }}>
                 No audit log entries yet.
               </td></tr>
             )}
             {logs.map(log => (
               <tr key={log.id}>
-                <td className="mono" style={{ color: 'var(--text2)', whiteSpace: 'nowrap' }}>
+                <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: '#6B7280', whiteSpace: 'nowrap' }}>
                   {new Date(log.created_at).toLocaleString()}
                 </td>
-                <td style={{ fontWeight: 500 }}>
-                  {!log.actor_id
-                    ? <span style={{ color: 'var(--blue)', fontFamily: 'var(--mono)', fontSize: 12 }}>SYSTEM</span>
-                    : log.actor_id}
+                <td style={{ fontWeight: 600 }}>
+                  {!log.actor_id ? (
+                    <span style={{ color: '#6B4EFF', fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, background: '#EEF0FF', padding: '2px 8px', borderRadius: 4 }}>
+                      SYSTEM
+                    </span>
+                  ) : log.actor_id.substring(0, 8) + '...'}
                 </td>
-                <td className="mono" style={{ color: 'var(--text2)', fontSize: 12 }}>{log.action}</td>
-                <td className="mono" style={{ color: 'var(--text3)', fontSize: 12 }}>{log.table_name}</td>
-                <td style={{ fontSize: 12, color: 'var(--text2)', maxWidth: 220 }}>
+                <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: '#0F1117', fontWeight: 500 }}>
+                  {log.action}
+                </td>
+                <td style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#9CA3AF' }}>
+                  {log.table_name}
+                </td>
+                <td style={{ fontSize: 12, color: '#6B7280', maxWidth: 240 }}>
                   {log.after_state ? Object.values(log.after_state).join(' · ') : '—'}
                 </td>
-                <td className="mono" style={{ fontSize: 12, color: 'var(--text3)' }}>
+                <td style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#9CA3AF' }}>
                   {log.ip_address || '—'}
                 </td>
               </tr>
@@ -94,24 +117,19 @@ export default function AuditLog() {
 
       {/* Mobile cards */}
       <div className="mobile-card-list">
-        {logs.length === 0 && (
-          <div className="mobile-card" style={{ textAlign: 'center', color: 'var(--text3)' }}>
-            No audit log entries yet.
-          </div>
-        )}
         {logs.map(log => (
           <div key={log.id} className="mobile-card">
             <div className="mobile-card-row">
-              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', fontFamily: 'var(--mono)' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#0F1117', fontFamily: 'var(--mono)' }}>
                 {log.action}
               </span>
-              <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)' }}>
+              <span style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'var(--mono)' }}>
                 {log.table_name}
               </span>
             </div>
             <div className="mobile-card-row">
               <span className="mobile-card-label">Actor</span>
-              <span className="mobile-card-value">
+              <span className="mobile-card-value" style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>
                 {!log.actor_id ? 'SYSTEM' : log.actor_id.substring(0, 8) + '...'}
               </span>
             </div>

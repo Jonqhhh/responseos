@@ -13,11 +13,11 @@ async function getUsers() {
   return data
 }
 
-const roleColor = {
-  admin:      { bg: 'var(--blue-dim)',  text: '#93C5FD' },
-  supervisor: { bg: 'var(--green-dim)', text: '#6EE7B7' },
-  employee:   { bg: 'var(--surface3)', text: 'var(--text2)' },
-  auditor:    { bg: 'var(--amber-dim)', text: '#FCD34D' },
+const roleConfig = {
+  admin:      { color: '#6B4EFF', bg: '#EEF0FF', border: '#C7C0FF', label: 'Admin' },
+  supervisor: { color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', label: 'Supervisor' },
+  employee:   { color: '#6B7280', bg: '#F3F4F8', border: '#E4E6EF', label: 'Employee' },
+  auditor:    { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', label: 'Auditor' },
 }
 
 export default function Users() {
@@ -33,14 +33,14 @@ export default function Users() {
   const inactive = users.filter(u => !u.is_active)
 
   return (
-    <div className="page-wrap" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {showAdd && <AddUserModal onClose={() => setShowAdd(false)} onSaved={refetch} />}
       {!!editing && (
         <EditUserModal
           user={editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); refetch(); }}
+          onSaved={() => { setEditing(null); refetch() }}
         />
       )}
 
@@ -54,136 +54,198 @@ export default function Users() {
         }
       />
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        {['admin','supervisor','employee','auditor'].map(role => (
-          <span key={role} style={{
-            padding: '5px 12px', borderRadius: 99, fontSize: 13,
-            background: roleColor[role]?.bg, color: roleColor[role]?.text,
-            border: '0.5px solid var(--border)'
-          }}>
-            {users.filter(u => u.role === role).length} {role}
-          </span>
-        ))}
+      {/* Role summary */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+        {['admin', 'supervisor', 'employee', 'auditor'].map(role => {
+          const cfg = roleConfig[role]
+          const count = users.filter(u => u.role === role).length
+          return (
+            <div key={role} className="card" style={{ borderTop: `3px solid ${cfg.color}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: cfg.bg, color: cfg.color,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, fontWeight: 700, border: `1px solid ${cfg.border}`
+              }}>
+                {count}
+              </div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: cfg.color }}>{count}</div>
+                <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{cfg.label}</div>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
-      {/* Desktop table */}
+      {/* Active users table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '12px 16px', borderBottom: '0.5px solid var(--border)' }}>
-          <span className="label">Active users ({active.length})</span>
+        <div style={{
+          padding: '14px 20px', borderBottom: '1px solid #E4E6EF',
+          background: '#F8F9FC', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#0F1117' }}>Active users</span>
+          <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{active.length} members</span>
         </div>
         <table className="data-table">
           <thead>
-            <tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th></th></tr>
+            <tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th></th></tr>
           </thead>
           <tbody>
-            {active.map(u => (
-              <tr key={u.id}>
-                <td style={{ fontWeight: 500 }}>{u.full_name}</td>
-                <td style={{ color: 'var(--text2)', fontSize: 12, fontFamily: 'var(--mono)' }}>{u.email}</td>
-                <td>
-                  <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 500, background: roleColor[u.role]?.bg, color: roleColor[u.role]?.text }}>
-                    {u.role}
-                  </span>
-                </td>
-                <td style={{ color: 'var(--text2)' }}>{u.department || '—'}</td>
-                <td>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(u) }}
-                    style={{ padding: '4px 10px', borderRadius: 4, border: '0.5px solid var(--border2)', background: 'transparent', color: 'var(--text2)', fontSize: 12, cursor: 'pointer' }}>
-                    Edit
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {active.length === 0 && (
+              <tr><td colSpan={6} style={{ textAlign: 'center', color: '#9CA3AF', padding: 32 }}>No active users.</td></tr>
+            )}
+            {active.map(u => {
+              const cfg = roleConfig[u.role] || roleConfig.employee
+              return (
+                <tr key={u.id}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%',
+                        background: cfg.bg, color: cfg.color,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, fontWeight: 700, flexShrink: 0, border: `1px solid ${cfg.border}`
+                      }}>
+                        {u.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                      </div>
+                      <span style={{ fontWeight: 600 }}>{u.full_name}</span>
+                    </div>
+                  </td>
+                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: '#6B7280' }}>{u.email}</td>
+                  <td>
+                    <span style={{
+                      padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700,
+                      background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`
+                    }}>{u.role}</span>
+                  </td>
+                  <td style={{ color: '#6B7280', fontSize: 13 }}>{u.department || '—'}</td>
+                  <td>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#059669', fontWeight: 600 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#059669', display: 'inline-block' }} />
+                      Active
+                    </span>
+                  </td>
+                  <td>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(u) }}
+                      style={{
+                        padding: '5px 12px', borderRadius: 6,
+                        border: '1px solid #E4E6EF', background: '#fff',
+                        color: '#6B7280', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                        transition: 'all .12s'
+                      }}
+                      onMouseOver={e => { e.currentTarget.style.borderColor = '#6B4EFF'; e.currentTarget.style.color = '#6B4EFF' }}
+                      onMouseOut={e => { e.currentTarget.style.borderColor = '#E4E6EF'; e.currentTarget.style.color = '#6B7280' }}
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
 
-      {/* Mobile cards — active */}
+      {/* Mobile cards */}
       <div className="mobile-card-list">
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
           Active users ({active.length})
         </div>
-        {active.map(u => (
-          <div key={u.id} className="mobile-card">
-            <div className="mobile-card-row">
-              <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>{u.full_name}</span>
-              <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 500, background: roleColor[u.role]?.bg, color: roleColor[u.role]?.text }}>
-                {u.role}
-              </span>
+        {active.map(u => {
+          const cfg = roleConfig[u.role] || roleConfig.employee
+          return (
+            <div key={u.id} className="mobile-card">
+              <div className="mobile-card-row">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: cfg.bg, color: cfg.color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 700, border: `1px solid ${cfg.border}`
+                  }}>
+                    {u.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </div>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: '#0F1117' }}>{u.full_name}</span>
+                </div>
+                <span style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+                  {u.role}
+                </span>
+              </div>
+              <div className="mobile-card-row">
+                <span className="mobile-card-label">Email</span>
+                <span className="mobile-card-value" style={{ fontSize: 12, fontFamily: 'var(--mono)' }}>{u.email}</span>
+              </div>
+              <div className="mobile-card-row">
+                <span className="mobile-card-label">Department</span>
+                <span className="mobile-card-value">{u.department || '—'}</span>
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <button type="button" onClick={() => setEditing(u)} className="btn btn-ghost" style={{ fontSize: 12, padding: '5px 12px' }}>
+                  Edit
+                </button>
+              </div>
             </div>
-            <div className="mobile-card-row">
-              <span className="mobile-card-label">Email</span>
-              <span className="mobile-card-value" style={{ fontSize: 12, fontFamily: 'var(--mono)' }}>{u.email}</span>
-            </div>
-            <div className="mobile-card-row">
-              <span className="mobile-card-label">Department</span>
-              <span className="mobile-card-value">{u.department || '—'}</span>
-            </div>
-            <div style={{ marginTop: 10 }}>
-              <button type="button" onClick={() => setEditing(u)}
-                className="btn btn-ghost" style={{ fontSize: 12, padding: '5px 12px' }}>
-                Edit
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          )
+        })}
 
-      {inactive.length > 0 && (
-        <>
-          <div className="card" style={{ padding: 0, overflow: 'hidden', opacity: 0.6 }}>
-            <div style={{ padding: '12px 16px', borderBottom: '0.5px solid var(--border)' }}>
-              <span className="label">Inactive users ({inactive.length})</span>
-            </div>
-            <table className="data-table">
-              <thead>
-                <tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th></th></tr>
-              </thead>
-              <tbody>
-                {inactive.map(u => (
-                  <tr key={u.id}>
-                    <td style={{ fontWeight: 500 }}>{u.full_name}</td>
-                    <td style={{ color: 'var(--text2)', fontSize: 12, fontFamily: 'var(--mono)' }}>{u.email}</td>
-                    <td>
-                      <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 500, background: roleColor[u.role]?.bg, color: roleColor[u.role]?.text }}>
-                        {u.role}
-                      </span>
-                    </td>
-                    <td style={{ color: 'var(--text2)' }}>{u.department || '—'}</td>
-                    <td>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(u) }}
-                        style={{ padding: '4px 10px', borderRadius: 4, border: '0.5px solid var(--border2)', background: 'transparent', color: 'var(--text2)', fontSize: 12, cursor: 'pointer' }}>
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mobile-card-list" style={{ opacity: 0.6 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
-              Inactive users ({inactive.length})
+        {inactive.length > 0 && (
+          <>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: 8, marginBottom: 4 }}>
+              Inactive ({inactive.length})
             </div>
             {inactive.map(u => (
-              <div key={u.id} className="mobile-card">
+              <div key={u.id} className="mobile-card" style={{ opacity: 0.6 }}>
                 <div className="mobile-card-row">
-                  <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>{u.full_name}</span>
-                  <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 500, background: roleColor[u.role]?.bg, color: roleColor[u.role]?.text }}>
-                    {u.role}
-                  </span>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: '#0F1117' }}>{u.full_name}</span>
+                  <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>INACTIVE</span>
                 </div>
                 <div style={{ marginTop: 10 }}>
-                  <button type="button" onClick={() => setEditing(u)}
-                    className="btn btn-ghost" style={{ fontSize: 12, padding: '5px 12px' }}>
+                  <button type="button" onClick={() => setEditing(u)} className="btn btn-ghost" style={{ fontSize: 12, padding: '5px 12px' }}>
                     Reactivate
                   </button>
                 </div>
               </div>
             ))}
+          </>
+        )}
+      </div>
+
+      {/* Inactive users table */}
+      {inactive.length > 0 && (
+        <div className="card" style={{ padding: 0, overflow: 'hidden', opacity: 0.65 }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid #E4E6EF', background: '#F8F9FC' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#6B7280' }}>Inactive users ({inactive.length})</span>
           </div>
-        </>
+          <table className="data-table">
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th></th></tr>
+            </thead>
+            <tbody>
+              {inactive.map(u => {
+                const cfg = roleConfig[u.role] || roleConfig.employee
+                return (
+                  <tr key={u.id}>
+                    <td style={{ fontWeight: 600 }}>{u.full_name}</td>
+                    <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: '#6B7280' }}>{u.email}</td>
+                    <td>
+                      <span style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: cfg.bg, color: cfg.color }}>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td style={{ color: '#6B7280' }}>{u.department || '—'}</td>
+                    <td>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(u) }}
+                        style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #E4E6EF', background: '#fff', color: '#6B7280', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )

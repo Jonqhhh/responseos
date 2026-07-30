@@ -20,17 +20,19 @@ export default function Certifications() {
   if (loading) return <LoadingState />
   if (error) return <ErrorState message={error} />
 
-  return (
-    <div className="page-wrap" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+  const valid    = certs.filter(c => c.status === 'valid').length
+  const expiring = certs.filter(c => c.status === 'expiring').length
+  const expired  = certs.filter(c => c.status === 'expired').length
 
-      {showAdd && (
-        <AddCertificationModal onClose={() => setShowAdd(false)} onSaved={refetch} />
-      )}
+  return (
+    <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {showAdd && <AddCertificationModal onClose={() => setShowAdd(false)} onSaved={refetch} />}
       {!!editing && (
         <EditCertificationModal
           cert={editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); refetch(); }}
+          onSaved={() => { setEditing(null); refetch() }}
         />
       )}
 
@@ -44,15 +46,22 @@ export default function Certifications() {
         }
       />
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      {/* Stat cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
         {[
-          { label: 'Valid', count: certs.filter(c => c.status === 'valid').length, cls: 'pill-green' },
-          { label: 'Expiring soon', count: certs.filter(c => c.status === 'expiring').length, cls: 'pill-amber' },
-          { label: 'Expired', count: certs.filter(c => c.status === 'expired').length, cls: 'pill-red' },
+          { label: 'Valid', count: valid, color: '#059669', bg: '#ECFDF5', border: '#059669' },
+          { label: 'Expiring soon', count: expiring, color: '#D97706', bg: '#FFFBEB', border: '#D97706' },
+          { label: 'Expired', count: expired, color: '#DC2626', bg: '#FEF2F2', border: '#DC2626' },
         ].map(s => (
-          <span key={s.label} className={`pill ${s.cls}`} style={{ fontSize: 13, padding: '5px 12px' }}>
-            {s.count} {s.label}
-          </span>
+          <div key={s.label} className="card" style={{ borderTop: `3px solid ${s.border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 10, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: s.color }}>
+              {s.count}
+            </div>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.count}</div>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{s.label}</div>
+            </div>
+          </div>
         ))}
       </div>
 
@@ -61,33 +70,50 @@ export default function Certifications() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Employee</th><th>Certification</th><th>Issuing body</th>
-              <th>Expiry date</th><th>Days remaining</th><th>Status</th><th></th>
+              <th>Employee</th>
+              <th>Certification</th>
+              <th>Issuing body</th>
+              <th>Expiry date</th>
+              <th>Days remaining</th>
+              <th>Status</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {certs.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text3)', padding: 24 }}>
-                No certifications yet.
+              <tr><td colSpan={7} style={{ textAlign: 'center', color: '#9CA3AF', padding: 32 }}>
+                No certifications yet — click + Add certification to get started.
               </td></tr>
             )}
             {certs.map(c => {
               const days = daysUntil(c.expiry_date)
               return (
                 <tr key={c.id}>
-                  <td style={{ fontWeight: 500 }}>{c.users?.full_name}</td>
-                  <td>{c.cert_name}</td>
-                  <td className="mono" style={{ color: 'var(--text2)' }}>{c.issuing_body}</td>
-                  <td className="mono">{c.expiry_date}</td>
-                  <td className="mono" style={{
-                    color: days < 0 ? 'var(--red)' : days <= 7 ? 'var(--red)' : days <= 30 ? 'var(--amber)' : 'var(--green)'
+                  <td style={{ fontWeight: 600 }}>{c.users?.full_name}</td>
+                  <td style={{ fontWeight: 500 }}>{c.cert_name}</td>
+                  <td style={{ color: '#6B7280', fontFamily: 'var(--mono)', fontSize: 12 }}>{c.issuing_body}</td>
+                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: '#6B7280' }}>{c.expiry_date}</td>
+                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600,
+                    color: days < 0 ? '#DC2626' : days <= 7 ? '#DC2626' : days <= 30 ? '#D97706' : '#059669'
                   }}>
                     {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
                   </td>
-                  <td><span className={`pill ${c.status === 'expired' ? 'pill-red' : c.status === 'expiring' ? 'pill-amber' : 'pill-green'}`}>{c.status}</span></td>
+                  <td>
+                    <span className={`pill ${c.status === 'expired' ? 'pill-red' : c.status === 'expiring' ? 'pill-amber' : 'pill-green'}`}>
+                      {c.status}
+                    </span>
+                  </td>
                   <td>
                     <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(c) }}
-                      style={{ padding: '4px 10px', borderRadius: 4, border: '0.5px solid var(--border2)', background: 'transparent', color: 'var(--text2)', fontSize: 12, cursor: 'pointer' }}>
+                      style={{
+                        padding: '5px 12px', borderRadius: 6,
+                        border: '1px solid #E4E6EF', background: '#fff',
+                        color: '#6B7280', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                        transition: 'all .12s'
+                      }}
+                      onMouseOver={e => { e.target.style.borderColor = '#6B4EFF'; e.target.style.color = '#6B4EFF' }}
+                      onMouseOut={e => { e.target.style.borderColor = '#E4E6EF'; e.target.style.color = '#6B7280' }}
+                    >
                       Edit
                     </button>
                   </td>
@@ -101,16 +127,17 @@ export default function Certifications() {
       {/* Mobile cards */}
       <div className="mobile-card-list">
         {certs.length === 0 && (
-          <div className="mobile-card" style={{ textAlign: 'center', color: 'var(--text3)' }}>
+          <div className="mobile-card" style={{ textAlign: 'center', color: '#9CA3AF' }}>
             No certifications yet — tap + Add certification.
           </div>
         )}
         {certs.map(c => {
           const days = daysUntil(c.expiry_date)
+          const borderColor = c.status === 'expired' ? '#DC2626' : c.status === 'expiring' ? '#D97706' : '#059669'
           return (
-            <div key={c.id} className="mobile-card" style={{ borderLeft: `3px solid ${c.status === 'expired' ? 'var(--red)' : c.status === 'expiring' ? 'var(--amber)' : 'var(--green)'}` }}>
+            <div key={c.id} className="mobile-card" style={{ borderLeft: `3px solid ${borderColor}` }}>
               <div className="mobile-card-row">
-                <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>{c.cert_name}</span>
+                <span style={{ fontSize: 15, fontWeight: 600, color: '#0F1117' }}>{c.cert_name}</span>
                 <span className={`pill ${c.status === 'expired' ? 'pill-red' : c.status === 'expiring' ? 'pill-amber' : 'pill-green'}`}>{c.status}</span>
               </div>
               <div className="mobile-card-row">
@@ -123,15 +150,12 @@ export default function Certifications() {
               </div>
               <div className="mobile-card-row">
                 <span className="mobile-card-label">Expires</span>
-                <span className="mobile-card-value" style={{
-                  color: days < 0 ? 'var(--red)' : days <= 7 ? 'var(--red)' : days <= 30 ? 'var(--amber)' : 'var(--green)'
-                }}>
+                <span className="mobile-card-value" style={{ color: days < 0 ? '#DC2626' : days <= 30 ? '#D97706' : '#059669', fontWeight: 600 }}>
                   {c.expiry_date} ({days < 0 ? `${Math.abs(days)}d overdue` : `${days}d left`})
                 </span>
               </div>
               <div style={{ marginTop: 10 }}>
-                <button type="button" onClick={() => setEditing(c)}
-                  className="btn btn-ghost" style={{ fontSize: 12, padding: '5px 12px' }}>
+                <button type="button" onClick={() => setEditing(c)} className="btn btn-ghost" style={{ fontSize: 12, padding: '5px 12px' }}>
                   Edit
                 </button>
               </div>
