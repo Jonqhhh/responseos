@@ -9,14 +9,12 @@ export default function Landing() {
       {/* Nav */}
       <nav style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '18px 60px', borderBottom: '1px solid #E4E6EF',
-        background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)',
+        padding: '14px 60px', borderBottom: '1px solid #E4E6EF',
+        background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)',
         position: 'sticky', top: 0, zIndex: 100,
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
       }}>
-        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-.02em', color: '#0F1117' }}>
-          Response<span style={{ color: '#6B4EFF' }}>OS</span>
-        </div>
+        <img src="/logo.svg" alt="ResponseOS" style={{ height: 44, objectFit: 'contain' }} />
         <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
           <a href="#features" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>Features</a>
           <a href="#how" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>How it works</a>
@@ -101,7 +99,7 @@ export default function Landing() {
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#EF4444' }} />
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#F59E0B' }} />
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10B981' }} />
-              <span style={{ marginLeft: 8, fontSize: 11, color: '#71717A', fontFamily: 'IBM Plex Mono, monospace' }}>responseos.netlify.app</span>
+              <img src="/logo.svg" alt="ResponseOS" style={{ height: 20, objectFit: 'contain', marginLeft: 8 }} />
             </div>
             <div style={{ padding: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
@@ -218,8 +216,7 @@ export default function Landing() {
             <div key={f.title} style={{
               background: '#fff', border: '1px solid #E4E6EF',
               borderRadius: 14, padding: '28px 24px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-              transition: 'all .15s', cursor: 'default'
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)', transition: 'all .15s', cursor: 'default'
             }}
               onMouseOver={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(107,78,255,0.12)'; e.currentTarget.style.borderColor = '#C7C0FF' }}
               onMouseOut={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'; e.currentTarget.style.borderColor = '#E4E6EF' }}
@@ -288,6 +285,7 @@ export default function Landing() {
 
       {/* CTA */}
       <section style={{ background: '#1C1C1E', padding: '80px 60px', textAlign: 'center' }}>
+        <img src="/logo.svg" alt="ResponseOS" style={{ height: 48, objectFit: 'contain', marginBottom: 28 }} />
         <h2 style={{ fontSize: 40, fontWeight: 800, color: '#fff', marginBottom: 16, letterSpacing: '-.02em' }}>
           Ready to get audit-ready?
         </h2>
@@ -306,10 +304,8 @@ export default function Landing() {
 
       {/* Footer */}
       <footer style={{ padding: '28px 60px', borderTop: '1px solid #E4E6EF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff' }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: '#0F1117', letterSpacing: '-.02em' }}>
-          Response<span style={{ color: '#6B4EFF' }}>OS</span>
-        </div>
-        <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>© 2026 ResponseOS · Built by VALE Co</div>
+        <img src="/logo.svg" alt="ResponseOS" style={{ height: 36, objectFit: 'contain' }} />
+        <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>© 2026 ResponseOS · Built by VALE Co · Houston, TX</div>
         <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>responseos.netlify.app</div>
       </footer>
 
