@@ -23,9 +23,7 @@ export default function Landing() {
             border: 'none', borderRadius: '8px', fontSize: 14, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'Inter, sans-serif',
             boxShadow: '0 1px 2px rgba(107,78,255,0.3)'
-          }}>
-            Sign in
-          </button>
+          }}>Sign in</button>
         </div>
       </nav>
 
@@ -44,10 +42,7 @@ export default function Landing() {
           }}>
             ◆ FERC · NERC CIP · OSHA · ISO 27001
           </div>
-          <h1 style={{
-            fontSize: 52, fontWeight: 800, lineHeight: 1.1,
-            color: '#0F1117', marginBottom: 20, letterSpacing: '-.03em'
-          }}>
+          <h1 style={{ fontSize: 52, fontWeight: 800, lineHeight: 1.1, color: '#0F1117', marginBottom: 20, letterSpacing: '-.03em' }}>
             Always audit-ready.<br />
             <span style={{ color: '#6B4EFF' }}>Always accountable.</span>
           </h1>
@@ -60,17 +55,13 @@ export default function Landing() {
               border: 'none', borderRadius: '8px', fontSize: 15, fontWeight: 700,
               cursor: 'pointer', fontFamily: 'Inter, sans-serif',
               boxShadow: '0 4px 12px rgba(107,78,255,0.3)'
-            }}>
-              Get started →
-            </button>
+            }}>Get started →</button>
             <a href="#features" style={{
               padding: '13px 28px', fontSize: 15, fontWeight: 600,
               borderRadius: '8px', border: '1px solid #E4E6EF',
               color: '#6B7280', textDecoration: 'none',
               display: 'inline-flex', alignItems: 'center', background: '#fff'
-            }}>
-              See features
-            </a>
+            }}>See features</a>
           </div>
           <div style={{ marginTop: 40, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
             {['FERC Aligned', 'NERC CIP Ready', 'SOC 2 Compatible', 'ISO 27001'].map(b => (
@@ -89,8 +80,7 @@ export default function Landing() {
             borderRadius: 24, zIndex: 0
           }} />
           <div style={{
-            position: 'relative', zIndex: 1,
-            background: '#fff', borderRadius: 16,
+            position: 'relative', zIndex: 1, background: '#fff', borderRadius: 16,
             border: '1px solid #E4E6EF',
             boxShadow: '0 20px 60px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.06)',
             overflow: 'hidden'
@@ -119,7 +109,6 @@ export default function Landing() {
                   </div>
                 ))}
               </div>
-
               <div style={{ background: '#F8F9FC', borderRadius: 8, padding: '10px', border: '1px solid #E4E6EF', marginBottom: 10 }}>
                 <div style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 8 }}>Recent alerts</div>
                 {[
@@ -134,7 +123,6 @@ export default function Landing() {
                   </div>
                 ))}
               </div>
-
               <div style={{ background: '#F8F9FC', borderRadius: 8, padding: '10px', border: '1px solid #E4E6EF' }}>
                 <div style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 8 }}>Cert health</div>
                 {[
@@ -154,8 +142,6 @@ export default function Landing() {
               </div>
             </div>
           </div>
-
-          {/* Floating badges */}
           <div style={{
             position: 'absolute', bottom: -16, left: -24, zIndex: 2,
             background: '#fff', borderRadius: 12, padding: '10px 14px',
@@ -168,7 +154,6 @@ export default function Landing() {
               <div style={{ fontSize: 10, color: '#9CA3AF' }}>Sent every Monday 8am</div>
             </div>
           </div>
-
           <div style={{
             position: 'absolute', top: 60, right: -20, zIndex: 2,
             background: '#fff', borderRadius: 12, padding: '10px 14px',
@@ -198,8 +183,69 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Compliance Frameworks */}
+      <section style={{ padding: '80px 60px', maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 56 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#6B4EFF', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Compliance frameworks</div>
+          <h2 style={{ fontSize: 38, fontWeight: 800, color: '#0F1117', letterSpacing: '-.02em' }}>Built for regulated industries</h2>
+          <p style={{ fontSize: 16, color: '#6B7280', marginTop: 12, maxWidth: 560, margin: '12px auto 0' }}>
+            ResponseOS aligns with the major compliance and audit frameworks your industry requires.
+          </p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 32 }}>
+          {[
+            { name: 'ISO 9001 / 27001', icon: '◈', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', desc: 'International standards for quality management and information security across industries.' },
+            { name: 'HIPAA', icon: '♥', color: '#DC2626', bg: '#FEF2F2', border: '#FECACA', desc: 'Protects sensitive patient health data used in healthcare sectors and covered entities.' },
+            { name: 'PCI DSS', icon: '◆', color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE', desc: 'Protects critical data associated with credit card use and payment processing.' },
+            { name: 'GDPR', icon: '★', color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE', desc: 'Regulates data protection measures in business organizations that process EU citizen data.' },
+            { name: 'SOC 2 / AICPA', icon: '≡', color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', desc: 'Audits internal controls and processes related to financial reporting and information security.' },
+            { name: 'OSHA', icon: '▲', color: '#DC2626', bg: '#FEF2F2', border: '#FECACA', desc: 'Associated with the safety and health of workplaces — mandatory for energy and industrial teams.' },
+          ].map(f => (
+            <div key={f.name} style={{
+              background: '#fff', border: `1px solid ${f.border}`,
+              borderRadius: 14, padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+              display: 'flex', gap: 16, alignItems: 'flex-start',
+              transition: 'all .15s', cursor: 'default'
+            }}
+              onMouseOver={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+              onMouseOut={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'; e.currentTarget.style.transform = 'translateY(0)' }}
+            >
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
+                background: f.bg, color: f.color,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 22, fontWeight: 700, border: `2px solid ${f.border}`
+              }}>
+                {f.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: f.color, marginBottom: 6 }}>{f.name}</div>
+                <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>{f.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Trust bar */}
+        <div style={{
+          padding: '20px 32px', background: '#1C1C1E', borderRadius: 14,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>ResponseOS helps you stay compliant with all major frameworks</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {['FERC', 'NERC CIP', 'ISO', 'HIPAA', 'SOC 2', 'OSHA', 'GDPR', 'PCI DSS'].map(b => (
+              <span key={b} style={{
+                padding: '4px 12px', borderRadius: 99, fontSize: 11, fontWeight: 700,
+                background: 'rgba(107,78,255,0.2)', color: '#A78BFA', border: '1px solid rgba(107,78,255,0.3)'
+              }}>{b}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
-      <section id="features" style={{ padding: '80px 60px', maxWidth: 1100, margin: '0 auto' }}>
+      <section id="features" style={{ padding: '80px 60px', maxWidth: 1100, margin: '0 auto', background: '#fff', borderTop: '1px solid #E4E6EF' }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#6B4EFF', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Features</div>
           <h2 style={{ fontSize: 38, fontWeight: 800, color: '#0F1117', letterSpacing: '-.02em' }}>Everything your compliance team needs</h2>
@@ -214,7 +260,7 @@ export default function Landing() {
             { icon: '◎', title: 'Weekly AI risk report', desc: 'Every Monday, leadership receives an AI-generated risk briefing — top 3 risks, recommended actions, and compliance score trend.' },
           ].map(f => (
             <div key={f.title} style={{
-              background: '#fff', border: '1px solid #E4E6EF',
+              background: '#F8F9FC', border: '1px solid #E4E6EF',
               borderRadius: 14, padding: '28px 24px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.06)', transition: 'all .15s', cursor: 'default'
             }}
@@ -232,7 +278,7 @@ export default function Landing() {
       </section>
 
       {/* How it works */}
-      <section id="how" style={{ background: '#fff', borderTop: '1px solid #E4E6EF', borderBottom: '1px solid #E4E6EF', padding: '80px 60px' }}>
+      <section id="how" style={{ background: '#F8F9FC', borderTop: '1px solid #E4E6EF', borderBottom: '1px solid #E4E6EF', padding: '80px 60px' }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#6B4EFF', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>How it works</div>
