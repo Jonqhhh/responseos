@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 
@@ -13,11 +13,14 @@ export default function Profile() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
   const [success, setSuccess] = useState(null)
   const [error, setError] = useState(null)
+  const [avatarUrl, setAvatarUrl] = useState(null)
   const [form, setForm] = useState({ full_name: '', email: '', department: '' })
   const [passwordForm, setPasswordForm] = useState({ new_password: '', confirm_password: '' })
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     async function loadProfile() {
@@ -26,6 +29,7 @@ export default function Profile() {
         const { data: profile } = await supabase
           .from('users').select('*').eq('id', authUser.id).single()
         setUser(profile)
+        setAvatarUrl(profile?.avatar_url || null)
         setForm({
           full_name: profile?.full_name || '',
           email: profile?.email || '',
@@ -39,6 +43,45 @@ export default function Profile() {
 
   function set(field, value) { setForm(prev => ({ ...prev, [field]: value })) }
   function setPassword(field, value) { setPasswordForm(prev => ({ ...prev, [field]: value })) }
+
+  async function handlePhotoUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { setError('Photo must be under 5MB.'); return }
+    if (!file.type.startsWith('image/')) { setError('Please upload an image file.'); return }
+
+    setUploadingPhoto(true)
+    setError(null)
+    setSuccess(null)
+
+    const ext = file.name.split('.').pop()
+    const fileName = `${user.id}.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true })
+
+    if (uploadError) { setError(uploadError.message); setUploadingPhoto(false); return }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName)
+
+    const urlWithCache = `${publicUrl}?t=${Date.now()}`
+
+    await supabase.from('users').update({ avatar_url: urlWithCache }).eq('id', user.id)
+    setAvatarUrl(urlWithCache)
+    setSuccess('Profile photo updated!')
+    setUploadingPhoto(false)
+  }
+
+  async function handleRemovePhoto() {
+    setUploadingPhoto(true)
+    await supabase.from('users').update({ avatar_url: null }).eq('id', user.id)
+    setAvatarUrl(null)
+    setSuccess('Photo removed.')
+    setUploadingPhoto(false)
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -80,38 +123,115 @@ export default function Profile() {
 
   return (
     <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 640 }}>
-      <PageHeader title="My profile" subtitle="Manage your account details and password." />
+      <PageHeader title="My profile" subtitle="Manage your account details, photo, and password." />
 
       {/* Avatar card */}
-      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 20, borderTop: `3px solid ${cfg.color}` }}>
-        <div style={{
-          width: 64, height: 64, borderRadius: '50%',
-          background: cfg.bg, color: cfg.color,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 24, fontWeight: 800, flexShrink: 0,
-          border: `2px solid ${cfg.border}`
-        }}>
-          {initials}
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#0F1117', marginBottom: 6 }}>
-            {user?.full_name}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700,
-              background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`
-            }}>
-              {user?.role}
-            </span>
-            {user?.department && (
-              <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{user.department}</span>
+      <div className="card" style={{ borderTop: `3px solid ${cfg.color}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+
+          {/* Avatar */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={user?.full_name}
+                style={{
+                  width: 72, height: 72, borderRadius: '50%',
+                  objectFit: 'cover', border: `2px solid ${cfg.border}`,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+              />
+            ) : (
+              <div style={{
+                width: 72, height: 72, borderRadius: '50%',
+                background: cfg.bg, color: cfg.color,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 26, fontWeight: 800, border: `2px solid ${cfg.border}`,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+              }}>
+                {initials}
+              </div>
             )}
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#059669', fontWeight: 600, marginLeft: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#059669', display: 'inline-block' }} />
-              Active
-            </span>
+
+            {/* Upload overlay */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              style={{
+                position: 'absolute', bottom: -2, right: -2,
+                width: 24, height: 24, borderRadius: '50%',
+                background: '#6B4EFF', color: '#fff', border: '2px solid #fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, cursor: 'pointer', fontWeight: 700,
+                boxShadow: '0 2px 6px rgba(107,78,255,0.4)'
+              }}
+            >
+              {uploadingPhoto ? '…' : '+'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handlePhotoUpload}
+            />
           </div>
+
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#0F1117', marginBottom: 6 }}>
+              {user?.full_name}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{
+                padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700,
+                background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`
+              }}>
+                {user?.role}
+              </span>
+              {user?.department && (
+                <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{user.department}</span>
+              )}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#059669', fontWeight: 600 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#059669', display: 'inline-block' }} />
+                Active
+              </span>
+            </div>
+          </div>
+
+          {/* Photo actions */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              style={{
+                padding: '7px 14px', borderRadius: 8,
+                border: '1px solid #6B4EFF', background: '#EEF0FF',
+                color: '#6B4EFF', fontSize: 12, fontWeight: 600,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                opacity: uploadingPhoto ? 0.6 : 1
+              }}
+            >
+              {uploadingPhoto ? 'Uploading...' : '↑ Upload photo'}
+            </button>
+            {avatarUrl && (
+              <button
+                onClick={handleRemovePhoto}
+                disabled={uploadingPhoto}
+                style={{
+                  padding: '7px 14px', borderRadius: 8,
+                  border: '1px solid #E4E6EF', background: '#fff',
+                  color: '#9CA3AF', fontSize: 12, fontWeight: 500,
+                  cursor: 'pointer', whiteSpace: 'nowrap'
+                }}
+              >
+                Remove photo
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 12, fontWeight: 500 }}>
+          JPG, PNG or GIF · Max 5MB · Click the + button or Upload photo
         </div>
       </div>
 
