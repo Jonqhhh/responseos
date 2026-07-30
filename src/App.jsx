@@ -16,13 +16,13 @@ import NotificationBell from './components/NotificationBell'
 import './index.css'
 
 const NAV = [
-  { to: '/',        icon: '▣', label: 'Dashboard'    },
+  { to: '/',        icon: '▣', label: 'Dashboard'      },
   { to: '/certs',   icon: '◈', label: 'Certifications' },
-  { to: '/tasks',   icon: '◎', label: 'Tasks'         },
-  { to: '/alerts',  icon: '△', label: 'Alerts'        },
-  { to: '/ai',      icon: '◆', label: 'AI Assistant'  },
-  { to: '/audit',   icon: '≡', label: 'Audit Log'     },
-  { to: '/users',   icon: '◉', label: 'Users'         },
+  { to: '/tasks',   icon: '◎', label: 'Tasks'          },
+  { to: '/alerts',  icon: '△', label: 'Alerts'         },
+  { to: '/ai',      icon: '◆', label: 'AI Assistant'   },
+  { to: '/audit',   icon: '≡', label: 'Audit Log'      },
+  { to: '/users',   icon: '◉', label: 'Users'          },
 ]
 
 function AppShell({ user, handleLogout }) {
@@ -36,16 +36,14 @@ function AppShell({ user, handleLogout }) {
         display: 'flex', flexDirection: 'column',
         padding: '0 0 20px'
       }}>
-        <div style={{ padding: '24px 20px 20px', marginBottom: 4 }}>
-          <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 800, letterSpacing: '-.02em', color: '#FFFFFF' }}>
-            Response<span style={{ color: 'var(--sidebar-accent)' }}>OS</span>
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--sidebar-text)', marginTop: 2, letterSpacing: '.04em', fontWeight: 500 }}>
-            COMPLIANCE PLATFORM
-          </div>
+
+        {/* Logo */}
+        <div style={{ padding: '16px 16px 12px', borderBottom: '0.5px solid #2C2C2E' }}>
+          <img src="/logo.svg" alt="ResponseOS" style={{ width: '100%', height: 52, objectFit: 'contain', objectPosition: 'left' }} />
         </div>
 
-        <nav style={{ flex: 1, padding: '4px 12px' }}>
+        {/* Nav */}
+        <nav style={{ flex: 1, padding: '8px 12px' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: '#52525B', letterSpacing: '.08em', textTransform: 'uppercase', padding: '6px 8px', marginBottom: 4 }}>
             Platform
           </div>
@@ -56,8 +54,8 @@ function AppShell({ user, handleLogout }) {
                 padding: '9px 10px', borderRadius: '8px',
                 marginBottom: 2, textDecoration: 'none',
                 fontSize: 13, fontWeight: isActive ? 600 : 400,
-                color: isActive ? '#FFFFFF' : 'var(--sidebar-text)',
-                background: isActive ? 'var(--sidebar-accent)' : 'transparent',
+                color: isActive ? '#FFFFFF' : '#A1A1AA',
+                background: isActive ? '#6B4EFF' : 'transparent',
                 transition: 'all .12s'
               })}
             >
@@ -67,16 +65,17 @@ function AppShell({ user, handleLogout }) {
           ))}
         </nav>
 
+        {/* User */}
         <div style={{ padding: '0 12px' }}>
           <NavLink to="/profile" style={({ isActive }) => ({
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '10px', borderRadius: '8px',
-            background: isActive ? 'var(--sidebar-accent)' : '#2C2C2E',
+            background: isActive ? '#6B4EFF' : '#2C2C2E',
             textDecoration: 'none', marginBottom: 8, transition: 'all .12s'
           })}>
             <div style={{
               width: 30, height: 30, borderRadius: '50%',
-              background: 'var(--sidebar-accent)', color: '#fff',
+              background: '#6B4EFF', color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 11, fontWeight: 700, flexShrink: 0
             }}>
@@ -86,7 +85,7 @@ function AppShell({ user, handleLogout }) {
               <div style={{ fontSize: 13, fontWeight: 600, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.full_name}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--sidebar-text)', fontWeight: 500 }}>
+              <div style={{ fontSize: 11, color: '#A1A1AA', fontWeight: 500 }}>
                 {user.role.toUpperCase()}
               </div>
             </div>
@@ -94,8 +93,8 @@ function AppShell({ user, handleLogout }) {
           <button onClick={handleLogout} style={{
             width: '100%', padding: '8px', borderRadius: '8px',
             background: 'transparent', border: '1px solid #3F3F46',
-            color: 'var(--sidebar-text)', fontSize: 12, fontWeight: 500,
-            cursor: 'pointer', fontFamily: 'var(--font)', transition: 'all .12s'
+            color: '#A1A1AA', fontSize: 12, fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all .12s'
           }}>
             Sign out
           </button>
@@ -188,7 +187,7 @@ export default function App() {
     }}>
       <div style={{
         width: 32, height: 32, borderRadius: '50%',
-        border: '2px solid var(--border)', borderTopColor: 'var(--blue)',
+        border: '2px solid var(--border)', borderTopColor: '#6B4EFF',
         animation: 'spin 0.8s linear infinite'
       }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
