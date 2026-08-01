@@ -22,10 +22,19 @@ export default function Quote() {
   async function handleSubmit() {
     if (!form.name || !form.email || !form.company) return
     setLoading(true)
-    // Simulate submission — in production connect to Resend or a Supabase table
-    await new Promise(r => setTimeout(r, 1200))
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/quote-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      })
+      if (!res.ok) throw new Error('Failed to submit')
+      setSubmitted(true)
+    } catch (e) {
+      alert('Something went wrong — please email jonahtandf@gmail.com directly.')
+    }
     setLoading(false)
-    setSubmitted(true)
   }
 
   const inputStyle = {
@@ -50,7 +59,7 @@ export default function Quote() {
       }}>
         <img src="/logo.svg" alt="ResponseOS" onClick={() => navigate('/home')}
           style={{ height: 44, objectFit: 'contain', cursor: 'pointer' }} />
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button onClick={() => navigate('/home')} style={{
             padding: '9px 18px', background: 'transparent', color: '#6B7280',
             border: '1px solid #E4E6EF', borderRadius: '8px', fontSize: 14,
@@ -211,7 +220,6 @@ export default function Quote() {
             </div>
           </>
         ) : (
-          /* Success state */
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{
               width: 72, height: 72, borderRadius: '50%',
