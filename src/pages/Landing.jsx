@@ -15,9 +15,14 @@ export default function Landing() {
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
       }}>
         <img src="/logo.svg" alt="ResponseOS" style={{ height: 44, objectFit: 'contain' }} />
-        <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <a href="#features" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>Features</a>
           <a href="#how" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>How it works</a>
+          <button onClick={() => navigate('/quote')} style={{
+            padding: '9px 18px', background: '#EEF0FF', color: '#6B4EFF',
+            border: '1px solid #C7C0FF', borderRadius: '8px', fontSize: 14, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+          }}>Get a quote</button>
           <button onClick={() => navigate('/login')} style={{
             padding: '9px 22px', background: '#6B4EFF', color: '#fff',
             border: 'none', borderRadius: '8px', fontSize: 14, fontWeight: 600,
@@ -50,12 +55,17 @@ export default function Landing() {
             AI-powered compliance for energy, utility, and critical infrastructure teams. Monitor certifications, tasks, and security posture in real time.
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <button onClick={() => navigate('/login')} style={{
+            <button onClick={() => navigate('/quote')} style={{
               padding: '13px 28px', background: '#6B4EFF', color: '#fff',
               border: 'none', borderRadius: '8px', fontSize: 15, fontWeight: 700,
               cursor: 'pointer', fontFamily: 'Inter, sans-serif',
               boxShadow: '0 4px 12px rgba(107,78,255,0.3)'
-            }}>Get started →</button>
+            }}>Get a quote →</button>
+            <button onClick={() => navigate('/login')} style={{
+              padding: '13px 28px', background: '#fff', color: '#6B7280',
+              border: '1px solid #E4E6EF', borderRadius: '8px', fontSize: 15, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+            }}>Sign in</button>
             <a href="#features" style={{
               padding: '13px 28px', fontSize: 15, fontWeight: 600,
               borderRadius: '8px', border: '1px solid #E4E6EF',
@@ -216,9 +226,7 @@ export default function Landing() {
                 background: f.bg, color: f.color,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 22, fontWeight: 700, border: `2px solid ${f.border}`
-              }}>
-                {f.icon}
-              </div>
+              }}>{f.icon}</div>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: f.color, marginBottom: 6 }}>{f.name}</div>
                 <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>{f.desc}</div>
@@ -226,8 +234,6 @@ export default function Landing() {
             </div>
           ))}
         </div>
-
-        {/* Trust bar */}
         <div style={{
           padding: '20px 32px', background: '#1C1C1E', borderRadius: 14,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16
@@ -338,20 +344,25 @@ export default function Landing() {
         <p style={{ fontSize: 18, color: '#71717A', marginBottom: 40, maxWidth: 480, margin: '0 auto 40px' }}>
           Join energy and infrastructure teams using ResponseOS to stay compliant, 24/7.
         </p>
-        <button onClick={() => navigate('/login')} style={{
-          padding: '16px 40px', background: '#6B4EFF', color: '#fff',
-          border: 'none', borderRadius: '10px', fontSize: 16, fontWeight: 700,
-          cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-          boxShadow: '0 4px 20px rgba(107,78,255,0.4)'
-        }}>
-          Sign in to ResponseOS →
-        </button>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button onClick={() => navigate('/quote')} style={{
+            padding: '16px 40px', background: '#6B4EFF', color: '#fff',
+            border: 'none', borderRadius: '10px', fontSize: 16, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+            boxShadow: '0 4px 20px rgba(107,78,255,0.4)'
+          }}>Get a quote →</button>
+          <button onClick={() => navigate('/login')} style={{
+            padding: '16px 40px', background: 'transparent', color: '#fff',
+            border: '1px solid #3F3F46', borderRadius: '10px', fontSize: 16, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+          }}>Sign in</button>
+        </div>
       </section>
 
       {/* Footer */}
       <footer style={{ padding: '28px 60px', borderTop: '1px solid #E4E6EF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff' }}>
         <img src="/logo.svg" alt="ResponseOS" style={{ height: 36, objectFit: 'contain' }} />
-        <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>© 2026 ResponseOS · Built by VALE Co · Houston, TX</div>
+        <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>© 2026 ResponseOS · Built by ResponseOS · Houston, TX</div>
         <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>responseos.netlify.app</div>
       </footer>
 
