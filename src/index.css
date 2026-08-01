@@ -3,39 +3,29 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* Core palette */
   --bg:        #F8F9FC;
   --surface:   #FFFFFF;
   --surface2:  #F3F4F8;
   --surface3:  #ECEEF5;
   --border:    #E4E6EF;
   --border2:   #D0D3E0;
-
-  /* Sidebar */
   --sidebar-bg:      #1C1C1E;
   --sidebar-text:    #A1A1AA;
   --sidebar-active:  #FFFFFF;
   --sidebar-accent:  #6B4EFF;
   --sidebar-hover:   #2C2C2E;
-
-  /* Text */
   --text:      #0F1117;
   --text2:     #6B7280;
   --text3:     #9CA3AF;
-
-  /* Accent — purple */
   --blue:      #6B4EFF;
   --blue-dim:  #EEF0FF;
   --blue-mid:  #C7C0FF;
-
-  /* Status */
   --green:     #059669;
   --green-dim: #ECFDF5;
   --amber:     #D97706;
   --amber-dim: #FFFBEB;
   --red:       #DC2626;
   --red-dim:   #FEF2F2;
-
   --font:      'Inter', system-ui, sans-serif;
   --mono:      'IBM Plex Mono', monospace;
   --radius:    8px;
@@ -64,7 +54,6 @@ html, body, #root {
   text-transform: uppercase; color: var(--text3);
 }
 
-/* Pills */
 .pill {
   display: inline-flex; align-items: center;
   padding: 3px 10px; border-radius: 99px;
@@ -75,7 +64,6 @@ html, body, #root {
 .pill-green  { background: var(--green-dim); color: var(--green); }
 .pill-blue   { background: var(--blue-dim);  color: var(--blue);  }
 
-/* Cards */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -84,7 +72,6 @@ html, body, #root {
   box-shadow: var(--shadow);
 }
 
-/* Tables */
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th {
   font-size: 11px; font-weight: 600; color: var(--text3);
@@ -100,7 +87,6 @@ html, body, #root {
 .data-table tr:hover td { background: var(--bg); }
 .data-table td.mono { font-family: var(--mono); font-size: 12px; color: var(--text2); }
 
-/* Buttons */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: var(--radius);
@@ -114,8 +100,7 @@ html, body, #root {
 }
 .btn-primary:hover { background: #5A3EE0; border-color: #5A3EE0; }
 .btn-ghost {
-  background: transparent; color: var(--text2);
-  border-color: var(--border);
+  background: transparent; color: var(--text2); border-color: var(--border);
 }
 .btn-ghost:hover { background: var(--surface2); color: var(--text); }
 
@@ -125,19 +110,19 @@ html, body, #root {
   position: fixed; bottom: 0; left: 0; right: 0;
   background: var(--surface);
   border-top: 1px solid var(--border);
-  padding: 8px 0 env(safe-area-inset-bottom);
+  padding: 6px 0 env(safe-area-inset-bottom);
   z-index: 100;
   box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
 }
 .bottom-nav-inner { display: flex; justify-content: space-around; align-items: center; }
 .bottom-nav-item {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 6px 12px; border-radius: var(--radius);
-  text-decoration: none; font-size: 10px; font-weight: 500;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 5px 8px; border-radius: var(--radius);
+  text-decoration: none; font-size: 9px; font-weight: 600;
   color: var(--text3); transition: all .12s; font-family: var(--font);
 }
 .bottom-nav-item.active { color: var(--blue); }
-.bottom-nav-item span.icon { font-size: 18px; }
+.bottom-nav-item span.icon { font-size: 16px; }
 
 /* ── Mobile cards ── */
 .mobile-card-list { display: none; flex-direction: column; gap: 10px; }
@@ -154,9 +139,13 @@ html, body, #root {
 .mobile-card-label { font-size: 11px; color: var(--text3); font-weight: 500; }
 .mobile-card-value { font-size: 13px; color: var(--text); font-weight: 500; }
 
-/* ── Mobile score card ── */
 .mobile-score-card { display: none; }
 
+/* ── Landing page mobile ── */
+.landing-nav-links { display: flex; gap: 12px; align-items: center; }
+.landing-nav-text { display: flex; gap: 24px; }
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
   aside.sidebar { display: none !important; }
   .bottom-nav { display: block; }
@@ -167,7 +156,39 @@ html, body, #root {
   .metrics-grid > div:first-child { display: none !important; }
   .mobile-score-card { display: block !important; }
   .grid2 { grid-template-columns: 1fr !important; }
-  .page-wrap { padding: 16px !important; }
+  .page-wrap { padding: 14px !important; }
   .mobile-full { width: 100%; justify-content: center; }
   .score-wrap { flex-direction: column; align-items: center; }
+
+  /* Landing page */
+  .landing-hero { grid-template-columns: 1fr !important; padding: 40px 20px 32px !important; }
+  .landing-hero-mockup { display: none !important; }
+  .landing-hero h1 { font-size: 34px !important; }
+  .landing-hero p { font-size: 15px !important; }
+  .landing-stats { grid-template-columns: 1fr 1fr !important; padding: 28px 20px !important; gap: 20px !important; }
+  .landing-stats .stat-val { font-size: 28px !important; }
+  .landing-frameworks { grid-template-columns: 1fr !important; padding: 40px 20px !important; }
+  .landing-frameworks-grid { grid-template-columns: 1fr !important; }
+  .landing-features { padding: 40px 20px !important; }
+  .landing-features-grid { grid-template-columns: 1fr !important; }
+  .landing-how { padding: 40px 20px !important; }
+  .landing-roles { padding: 40px 20px !important; }
+  .landing-roles-grid { grid-template-columns: 1fr 1fr !important; }
+  .landing-cta { padding: 48px 20px !important; }
+  .landing-footer { padding: 20px !important; flex-direction: column !important; gap: 10px !important; text-align: center !important; }
+  .landing-nav { padding: 12px 20px !important; }
+  .landing-nav-text { display: none !important; }
+  .landing-trust { flex-direction: column !important; gap: 12px !important; }
+  .landing-trust-badges { flex-wrap: wrap !important; justify-content: center !important; }
+
+  /* Quote page */
+  .quote-grid { grid-template-columns: 1fr !important; }
+  .quote-plans { grid-template-columns: 1fr !important; gap: 8px !important; }
+  .quote-form { padding: 20px !important; }
+  .quote-nav { padding: 12px 20px !important; }
+  .quote-wrap { padding: 32px 16px !important; }
+
+  /* Dashboard charts */
+  .charts-row { grid-template-columns: 1fr !important; }
+  .charts-row > div:first-child { grid-column: span 1 !important; }
 }

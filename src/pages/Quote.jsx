@@ -22,7 +22,6 @@ export default function Quote() {
   async function handleSubmit() {
     if (!form.name || !form.email || !form.company) return
     setLoading(true)
-
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/quote-request`, {
         method: 'POST',
@@ -50,7 +49,7 @@ export default function Quote() {
     <div style={{ background: '#F8F9FC', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>
 
       {/* Nav */}
-      <nav style={{
+      <nav className="quote-nav" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '14px 60px', borderBottom: '1px solid #E4E6EF',
         background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)',
@@ -73,7 +72,7 @@ export default function Quote() {
         </div>
       </nav>
 
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '60px 24px' }}>
+      <div className="quote-wrap" style={{ maxWidth: 680, margin: '0 auto', padding: '60px 24px' }}>
 
         {!submitted ? (
           <>
@@ -97,7 +96,7 @@ export default function Quote() {
             </div>
 
             {/* Plan cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 40 }}>
+            <div className="quote-plans" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 40 }}>
               {[
                 { name: 'Starter', price: '$5,700/yr', users: 'Up to 10 users', color: '#059669', bg: '#ECFDF5', border: '#A7F3D0' },
                 { name: 'Professional', price: '$8,100/yr', users: 'Up to 50 users', color: '#6B4EFF', bg: '#EEF0FF', border: '#C7C0FF', popular: true },
@@ -125,8 +124,8 @@ export default function Quote() {
             </div>
 
             {/* Form */}
-            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #E4E6EF', padding: '32px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div className="quote-form" style={{ background: '#fff', borderRadius: 14, border: '1px solid #E4E6EF', padding: '32px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div className="quote-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                 <div>
                   <label style={labelStyle}>Full name *</label>
                   <input type="text" value={form.name} onChange={e => set('name', e.target.value)}
@@ -143,7 +142,7 @@ export default function Quote() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div className="quote-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                 <div>
                   <label style={labelStyle}>Company name *</label>
                   <input type="text" value={form.company} onChange={e => set('company', e.target.value)}
@@ -168,7 +167,7 @@ export default function Quote() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div className="quote-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                 <div>
                   <label style={labelStyle}>Team size</label>
                   <select value={form.size} onChange={e => set('size', e.target.value)} style={inputStyle}>
