@@ -1,41 +1,108 @@
 import { useState, useRef, useEffect } from 'react'
 import PageHeader from '../components/PageHeader'
 import { supabase } from '../lib/supabase'
+import { getCertifications, getTasks, getAlerts } from '../lib/supabase'
 
-const SYSTEM = `You are the AI compliance assistant for ResponseOS, a cloud-based audit
-and compliance platform built by VALE Co. You have visibility into all platform data
-including certifications, tasks, alerts, and audit logs.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
-Key people:
+function buildSystemPrompt(certs, tasks, alerts, users) {
+  const now = new Date()
+
+  const certSummary = certs.map(c => {
+    const days = Math.ceil((new Date(c.expiry_date) - now) / (1000 * 60 * 60 * 24))
+    return `- ${c.users?.full_name}: ${c.cert_name} (${c.issuing_body}) — ${days < 0 ? `EXPIRED ${Math.abs(days)} days ago` : `expires in ${days} days`} — Status: ${c.status.toUpperCase()}`
+  }).join('\n')
+
+  const taskSummary = tasks.map(t =>
+    `- ${t.users?.full_name}: "${t.title}" (${t.type}) — Due: ${t.due_date} — Status: ${t.status.toUpperCase()}`
+  ).join('\n')
+
+  const alertSummary = alerts.map(a =>
+    `- [${a.tier.toUpperCase()}] ${a.message} — ${a.acknowledged ? 'Acknowledged' : 'UNREAD'}`
+  ).join('\n')
+
+  const overdue = tasks.filter(t => t.status === 'overdue')
+  const expiring = certs.filter(c => c.status === 'expiring' || c.status === 'expired')
+  const unread = alerts.filter(a => !a.acknowledged)
+  const score = Math.max(0, 100 - (certs.filter(c => c.status === 'expired').length * 15) - (overdue.length * 10) - (certs.filter(c => c.status === 'expiring').length * 5))
+
+  return `You are the AI compliance assistant for ResponseOS, an AI-powered compliance and audit platform built for energy, utility, and critical infrastructure teams.
+
+TODAY'S DATE: ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+
+CURRENT COMPLIANCE SCORE: ${score}%
+
+LIVE CERTIFICATION DATA (${certs.length} total):
+${certSummary || 'No certifications on file.'}
+
+LIVE TASK DATA (${tasks.length} total):
+${taskSummary || 'No tasks on file.'}
+
+LIVE ALERT DATA (${alerts.length} total):
+${alertSummary || 'No alerts.'}
+
+SUMMARY:
+- ${overdue.length} overdue tasks
+- ${expiring.length} expired or expiring certifications  
+- ${unread.length} unread alerts
+- Compliance score: ${score}%
+
+KEY PEOPLE:
 - Harrison Seals — Admin
 - Jonah Lane — Admin
 
-Rules:
-- Be specific and direct
-- Always suggest a concrete next action
-- Reference FERC/NERC/OSHA regulations when relevant
-- Keep responses to 3-5 sentences max unless a list is clearer
-- Tone: professional compliance analyst`
+YOUR ROLE:
+You are a sharp, knowledgeable compliance analyst. You have full visibility into the live platform data above. When answering questions, reference specific names, dates, and cert names from the data. Never give generic answers when you have real data to work with.
+
+RULES:
+- Always reference real names and data from above when relevant
+- Be direct and specific — name the person, the cert, the deadline
+- Suggest a concrete next action for every issue you identify
+- Reference FERC, NERC CIP, OSHA, ISO 27001 regulations when relevant
+- Keep responses concise — 3-6 sentences or a short list
+- Tone: confident compliance analyst, not a chatbot`
+}
 
 const CHIPS = [
-  'Which certifications expire in the next 30 days?',
-  'What tasks are overdue right now?',
+  'What certifications expire in the next 30 days?',
+  'Which tasks are overdue right now?',
   'Are we FERC audit-ready?',
-  'What are the top 3 compliance risks?',
+  'What are our top 3 compliance risks?',
   'Who needs to take action today?',
+  'What is our current compliance score?',
+  'Show me all unread alerts',
 ]
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 export default function AIAssistant() {
   const [messages, setMessages] = useState([{
     role: 'assistant',
-    content: "Hello. I'm the ResponseOS compliance assistant. I can help with certifications, tasks, alerts, and audit readiness. What would you like to review?"
+    content: "Hello. I'm the ResponseOS compliance assistant — I have full visibility into your live certification, task, and alert data. Ask me anything about your team's compliance status."
   }])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [dataLoading, setDataLoading] = useState(true)
   const [showChips, setShowChips] = useState(true)
+  const [platformData, setPlatformData] = useState({ certs: [], tasks: [], alerts: [], users: [] })
   const msgsRef = useRef(null)
+
+  useEffect(() => {
+    async function loadData() {
+      const [certsRes, tasksRes, alertsRes, usersRes] = await Promise.all([
+        getCertifications(),
+        getTasks(),
+        getAlerts(),
+        supabase.from('users').select('*').then(r => r.data || [])
+      ])
+      setPlatformData({
+        certs: certsRes || [],
+        tasks: tasksRes || [],
+        alerts: alertsRes || [],
+        users: usersRes || []
+      })
+      setDataLoading(false)
+    }
+    loadData()
+  }, [])
 
   useEffect(() => {
     if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight
@@ -54,19 +121,24 @@ export default function AIAssistant() {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
+      const systemPrompt = buildSystemPrompt(
+        platformData.certs,
+        platformData.tasks,
+        platformData.alerts,
+        platformData.users
+      )
+
       const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ messages: newMessages, system: SYSTEM })
+        body: JSON.stringify({ messages: newMessages, system: systemPrompt })
       })
 
       const data = await res.json()
-
       if (data.error) throw new Error(data.error)
-
       const reply = data.content.map(b => b.text || '').join('')
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
     } catch (e) {
@@ -75,12 +147,43 @@ export default function AIAssistant() {
     setLoading(false)
   }
 
+  const score = Math.max(0, 100 -
+    (platformData.certs.filter(c => c.status === 'expired').length * 15) -
+    (platformData.tasks.filter(t => t.status === 'overdue').length * 10) -
+    (platformData.certs.filter(c => c.status === 'expiring').length * 5)
+  )
+
   return (
     <div className="page-wrap" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
       <PageHeader
         title="AI Assistant"
-        subtitle="Compliance guidance powered by Claude AI."
+        subtitle="Compliance guidance powered by Claude AI — with live platform data."
       />
+
+      {/* Live data summary bar */}
+      {!dataLoading && (
+        <div style={{
+          display: 'flex', gap: 12, flexWrap: 'wrap',
+          padding: '12px 16px', background: '#F8F9FC',
+          borderRadius: 10, border: '1px solid #E4E6EF'
+        }}>
+          <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600 }}>Live data:</div>
+          {[
+            { label: `${platformData.certs.length} certs`, color: '#6B4EFF' },
+            { label: `${platformData.tasks.filter(t => t.status === 'overdue').length} overdue tasks`, color: '#DC2626' },
+            { label: `${platformData.alerts.filter(a => !a.acknowledged).length} unread alerts`, color: '#D97706' },
+            { label: `${score}% score`, color: score >= 80 ? '#059669' : score >= 60 ? '#D97706' : '#DC2626' },
+          ].map(s => (
+            <span key={s.label} style={{
+              padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700,
+              background: '#fff', color: s.color, border: `1px solid ${s.color}22`
+            }}>{s.label}</span>
+          ))}
+          <span style={{ fontSize: 11, color: '#059669', fontWeight: 600, marginLeft: 'auto' }}>
+            ● AI has full visibility into your platform
+          </span>
+        </div>
+      )}
 
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0 }}>
 
@@ -169,13 +272,15 @@ export default function AIAssistant() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && send()}
-            placeholder="Ask about certifications, tasks, risks, audit readiness…"
+            placeholder={dataLoading ? 'Loading platform data...' : 'Ask about your certifications, tasks, alerts, risks...'}
+            disabled={dataLoading}
             style={{
               flex: 1, padding: '11px 16px', borderRadius: '8px',
               border: '1px solid #E4E6EF', background: '#fff',
               color: '#0F1117', fontSize: 14, fontFamily: 'Inter, sans-serif',
               outline: 'none', transition: 'border-color .12s',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              opacity: dataLoading ? 0.5 : 1
             }}
             onFocus={e => e.target.style.borderColor = '#6B4EFF'}
             onBlur={e => e.target.style.borderColor = '#E4E6EF'}
@@ -183,8 +288,8 @@ export default function AIAssistant() {
           <button
             className="btn btn-primary"
             onClick={() => send()}
-            disabled={loading || !input.trim()}
-            style={{ opacity: loading || !input.trim() ? 0.5 : 1, padding: '11px 20px' }}
+            disabled={loading || !input.trim() || dataLoading}
+            style={{ opacity: loading || !input.trim() || dataLoading ? 0.5 : 1, padding: '11px 20px' }}
           >
             Send →
           </button>
