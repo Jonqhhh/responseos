@@ -9,6 +9,75 @@ const roleConfig = {
   auditor:    { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
 }
 
+function CertSection({ userId }) {
+  const [certs, setCerts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!userId) return
+    supabase.from('certifications').select('*')
+      .eq('user_id', userId).order('expiry_date').then(({ data }) => {
+        setCerts(data || [])
+        setLoading(false)
+      })
+  }, [userId])
+
+  if (loading) return null
+
+  if (certs.length === 0) return (
+    <div className="card" style={{ background: '#F8F9FC' }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#0F1117', marginBottom: 8 }}>My certifications</div>
+      <div style={{ fontSize: 13, color: '#9CA3AF' }}>No certifications on file yet.</div>
+    </div>
+  )
+
+  return (
+    <div className="card">
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#0F1117', marginBottom: 16 }}>My certifications</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {certs.map(c => {
+          const days = Math.ceil((new Date(c.expiry_date) - new Date()) / (1000 * 60 * 60 * 24))
+          const color  = c.status === 'expired' ? '#DC2626' : c.status === 'expiring' ? '#D97706' : '#059669'
+          const bg     = c.status === 'expired' ? '#FEF2F2' : c.status === 'expiring' ? '#FFFBEB' : '#ECFDF5'
+          const border = c.status === 'expired' ? '#FECACA' : c.status === 'expiring' ? '#FDE68A' : '#A7F3D0'
+          return (
+            <div key={c.id} style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              padding: '12px 14px', borderRadius: 10,
+              background: bg, border: `1px solid ${border}`
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0F1117', marginBottom: 2 }}>{c.cert_name}</div>
+                <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>
+                  {c.issuing_body} · Expires {c.expiry_date}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color, padding: '2px 8px', borderRadius: 99, background: '#fff', border: `1px solid ${border}`, marginBottom: 4 }}>
+                  {c.status.toUpperCase()}
+                </div>
+                <div style={{ fontSize: 11, color, fontWeight: 600 }}>
+                  {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d left`}
+                </div>
+              </div>
+              {c.doc_url && (
+                <a href={c.doc_url} target="_blank" rel="noreferrer"
+                  style={{
+                    padding: '6px 10px', borderRadius: 6, border: '1px solid #E4E6EF',
+                    background: '#fff', color: '#6B4EFF', fontSize: 12, fontWeight: 600,
+                    textDecoration: 'none', flexShrink: 0
+                  }}>
+                  📄 View
+                </a>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function Profile() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -58,15 +127,11 @@ export default function Profile() {
     const fileName = `${user.id}.${ext}`
 
     const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(fileName, file, { upsert: true })
+      .from('avatars').upload(fileName, file, { upsert: true })
 
     if (uploadError) { setError(uploadError.message); setUploadingPhoto(false); return }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(fileName)
-
+    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
     const urlWithCache = `${publicUrl}?t=${Date.now()}`
 
     await supabase.from('users').update({ avatar_url: urlWithCache }).eq('id', user.id)
@@ -127,36 +192,20 @@ export default function Profile() {
 
       {/* Avatar card */}
       <div className="card" style={{ borderTop: `3px solid ${cfg.color}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-
-          {/* Avatar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={user?.full_name}
-                style={{
-                  width: 72, height: 72, borderRadius: '50%',
-                  objectFit: 'cover', border: `2px solid ${cfg.border}`,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                }}
-              />
+              <img src={avatarUrl} alt={user?.full_name}
+                style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${cfg.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
             ) : (
               <div style={{
                 width: 72, height: 72, borderRadius: '50%',
                 background: cfg.bg, color: cfg.color,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 26, fontWeight: 800, border: `2px solid ${cfg.border}`,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-              }}>
-                {initials}
-              </div>
+                fontSize: 26, fontWeight: 800, border: `2px solid ${cfg.border}`
+              }}>{initials}</div>
             )}
-
-            {/* Upload overlay */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto}
               style={{
                 position: 'absolute', bottom: -2, right: -2,
                 width: 24, height: 24, borderRadius: '50%',
@@ -164,33 +213,20 @@ export default function Profile() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 12, cursor: 'pointer', fontWeight: 700,
                 boxShadow: '0 2px 6px rgba(107,78,255,0.4)'
-              }}
-            >
+              }}>
               {uploadingPhoto ? '…' : '+'}
             </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handlePhotoUpload}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*"
+              style={{ display: 'none' }} onChange={handlePhotoUpload} />
           </div>
 
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#0F1117', marginBottom: 6 }}>
-              {user?.full_name}
-            </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#0F1117', marginBottom: 6 }}>{user?.full_name}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{
-                padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700,
-                background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`
-              }}>
+              <span style={{ padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
                 {user?.role}
               </span>
-              {user?.department && (
-                <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{user.department}</span>
-              )}
+              {user?.department && <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{user.department}</span>}
               <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#059669', fontWeight: 600 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#059669', display: 'inline-block' }} />
                 Active
@@ -198,38 +234,19 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Photo actions */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
-              style={{
-                padding: '7px 14px', borderRadius: 8,
-                border: '1px solid #6B4EFF', background: '#EEF0FF',
-                color: '#6B4EFF', fontSize: 12, fontWeight: 600,
-                cursor: 'pointer', whiteSpace: 'nowrap',
-                opacity: uploadingPhoto ? 0.6 : 1
-              }}
-            >
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto}
+              style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid #6B4EFF', background: '#EEF0FF', color: '#6B4EFF', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', opacity: uploadingPhoto ? 0.6 : 1 }}>
               {uploadingPhoto ? 'Uploading...' : '↑ Upload photo'}
             </button>
             {avatarUrl && (
-              <button
-                onClick={handleRemovePhoto}
-                disabled={uploadingPhoto}
-                style={{
-                  padding: '7px 14px', borderRadius: 8,
-                  border: '1px solid #E4E6EF', background: '#fff',
-                  color: '#9CA3AF', fontSize: 12, fontWeight: 500,
-                  cursor: 'pointer', whiteSpace: 'nowrap'
-                }}
-              >
+              <button onClick={handleRemovePhoto} disabled={uploadingPhoto}
+                style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid #E4E6EF', background: '#fff', color: '#9CA3AF', fontSize: 12, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 Remove photo
               </button>
             )}
           </div>
         </div>
-
         <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 12, fontWeight: 500 }}>
           JPG, PNG or GIF · Max 5MB · Click the + button or Upload photo
         </div>
@@ -278,6 +295,9 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      {/* Certifications */}
+      <CertSection userId={user?.id} />
 
       {/* Password form */}
       <div className="card">
