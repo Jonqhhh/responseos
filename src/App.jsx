@@ -13,6 +13,7 @@ import Profile from './pages/Profile'
 import Login from './pages/Login'
 import Landing from './pages/Landing'
 import Quote from './pages/Quote'
+import Pricing from './pages/Pricing'
 import Search from './components/Search'
 import NotificationBell from './components/NotificationBell'
 import PageTransition from './components/PageTransition'
@@ -33,13 +34,13 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<PageTransition><Dashboard /></PageTransition>} />
-        <Route path="/certs" element={<PageTransition><Certifications /></PageTransition>} />
-        <Route path="/tasks" element={<PageTransition><Tasks /></PageTransition>} />
-        <Route path="/alerts" element={<PageTransition><Alerts /></PageTransition>} />
-        <Route path="/ai" element={<PageTransition><AIAssistant /></PageTransition>} />
-        <Route path="/audit" element={<PageTransition><AuditLog /></PageTransition>} />
-        <Route path="/users" element={<PageTransition><Users /></PageTransition>} />
+        <Route path="/"        element={<PageTransition><Dashboard /></PageTransition>} />
+        <Route path="/certs"   element={<PageTransition><Certifications /></PageTransition>} />
+        <Route path="/tasks"   element={<PageTransition><Tasks /></PageTransition>} />
+        <Route path="/alerts"  element={<PageTransition><Alerts /></PageTransition>} />
+        <Route path="/ai"      element={<PageTransition><AIAssistant /></PageTransition>} />
+        <Route path="/audit"   element={<PageTransition><AuditLog /></PageTransition>} />
+        <Route path="/users"   element={<PageTransition><Users /></PageTransition>} />
         <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
       </Routes>
     </AnimatePresence>
@@ -49,8 +50,6 @@ function AnimatedRoutes() {
 function AppShell({ user, handleLogout }) {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-
-      {/* Sidebar */}
       <aside className="sidebar" style={{
         width: 240, flexShrink: 0,
         background: 'var(--sidebar-bg)',
@@ -60,7 +59,6 @@ function AppShell({ user, handleLogout }) {
         <div style={{ padding: '16px 16px 12px', borderBottom: '0.5px solid #2C2C2E' }}>
           <img src="/logo.svg" alt="ResponseOS" style={{ width: '100%', height: 52, objectFit: 'contain', objectPosition: 'left' }} />
         </div>
-
         <nav style={{ flex: 1, padding: '8px 12px' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: '#52525B', letterSpacing: '.08em', textTransform: 'uppercase', padding: '6px 8px', marginBottom: 4 }}>
             Platform
@@ -82,7 +80,6 @@ function AppShell({ user, handleLogout }) {
             </NavLink>
           ))}
         </nav>
-
         <div style={{ padding: '0 12px' }}>
           <NavLink to="/profile" style={({ isActive }) => ({
             display: 'flex', alignItems: 'center', gap: 10,
@@ -118,7 +115,6 @@ function AppShell({ user, handleLogout }) {
         </div>
       </aside>
 
-      {/* Main */}
       <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
         <div style={{
           padding: '12px 28px',
@@ -131,13 +127,11 @@ function AppShell({ user, handleLogout }) {
           <Search />
           <NotificationBell />
         </div>
-
         <div style={{ flex: 1, overflow: 'auto' }}>
           <AnimatedRoutes />
         </div>
       </main>
 
-      {/* Mobile bottom nav */}
       <nav className="bottom-nav">
         <div className="bottom-nav-inner">
           {NAV.map(n => (
@@ -203,10 +197,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/home" element={<Landing />} />
-        <Route path="/login" element={user ? <Navigate to="/" /> : <Login onLogin={setUser} />} />
-        <Route path="/quote" element={<Quote />} />
-        <Route path="/*" element={user ? <AppShell user={user} handleLogout={handleLogout} /> : <Navigate to="/home" />} />
+        <Route path="/home"    element={<Landing />} />
+        <Route path="/login"   element={user ? <Navigate to="/" /> : <Login onLogin={setUser} />} />
+        <Route path="/quote"   element={<Quote />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/*"       element={user ? <AppShell user={user} handleLogout={handleLogout} /> : <Navigate to="/home" />} />
       </Routes>
     </BrowserRouter>
   )

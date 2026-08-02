@@ -19,6 +19,7 @@ export default function Landing() {
           <div className="landing-nav-text">
             <a href="#features" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>Features</a>
             <a href="#how" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>How it works</a>
+            <a href="/pricing" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>Pricing</a>
           </div>
           <button onClick={() => navigate('/quote')} style={{
             padding: '9px 18px', background: '#EEF0FF', color: '#6B4EFF',
