@@ -50,7 +50,7 @@ function AnimatedRoutes() {
 }
 
 function AppShell({ user, handleLogout }) {
-  const [showOnboarding, setShowOnboarding] = useState(!user?.onboarded)
+  const [showOnboarding, setShowOnboarding] = useState(user?.onboarded === false)
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -171,7 +171,10 @@ export default function App() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         const { data: profile } = await supabase
-          .from('users').select('*').eq('id', session.user.id).single()
+          .from('users')
+          .select('id, full_name, email, role, department, is_active, avatar_url, onboarded')
+          .eq('id', session.user.id)
+          .single()
         if (profile) setUser(profile)
       }
       setLoading(false)
@@ -181,7 +184,10 @@ export default function App() {
       if (event === 'SIGNED_OUT') setUser(null)
       if (event === 'SIGNED_IN' && session) {
         const { data: profile } = await supabase
-          .from('users').select('*').eq('id', session.user.id).single()
+          .from('users')
+          .select('id, full_name, email, role, department, is_active, avatar_url, onboarded')
+          .eq('id', session.user.id)
+          .single()
         if (profile) setUser(profile)
       }
     })
