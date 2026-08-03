@@ -163,13 +163,18 @@ export default function App() {
       if (session) {
         const { data: profile } = await supabase
           .from('users').select('*').eq('id', session.user.id).single()
-        setUser(profile)
+        if (profile) setUser(profile)
       }
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') setUser(null)
+      if (event === 'SIGNED_IN' && session) {
+        const { data: profile } = await supabase
+          .from('users').select('*').eq('id', session.user.id).single()
+        if (profile) setUser(profile)
+      }
     })
 
     return () => subscription.unsubscribe()
