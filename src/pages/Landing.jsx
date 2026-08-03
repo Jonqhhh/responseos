@@ -21,11 +21,6 @@ export default function Landing() {
             <a href="#how" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>How it works</a>
             <a href="/pricing" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>Pricing</a>
           </div>
-          <button onClick={() => navigate('/demo')} style={{
-            padding: '9px 18px', background: '#F3F4F8', color: '#0F1117',
-            border: '1px solid #E4E6EF', borderRadius: '8px', fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'Inter, sans-serif'
-          }}>Try a demo</button>
           <button onClick={() => navigate('/quote')} style={{
             padding: '9px 18px', background: '#EEF0FF', color: '#6B4EFF',
             border: '1px solid #C7C0FF', borderRadius: '8px', fontSize: 14, fontWeight: 600,
@@ -68,11 +63,11 @@ export default function Landing() {
               cursor: 'pointer', fontFamily: 'Inter, sans-serif',
               boxShadow: '0 4px 12px rgba(107,78,255,0.3)'
             }}>Get a quote →</button>
-            <button onClick={() => navigate('/demo')} style={{
-              padding: '13px 28px', background: '#fff', color: '#6B4EFF',
-              border: '2px solid #6B4EFF', borderRadius: '8px', fontSize: 15, fontWeight: 700,
+            <button onClick={() => navigate('/login')} style={{
+              padding: '13px 28px', background: '#fff', color: '#6B7280',
+              border: '1px solid #E4E6EF', borderRadius: '8px', fontSize: 15, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'Inter, sans-serif'
-            }}>Try a demo</button>
+            }}>Sign in</button>
             <a href="#features" style={{
               padding: '13px 28px', fontSize: 15, fontWeight: 600,
               borderRadius: '8px', border: '1px solid #E4E6EF',
@@ -347,11 +342,6 @@ export default function Landing() {
             cursor: 'pointer', fontFamily: 'Inter, sans-serif',
             boxShadow: '0 4px 20px rgba(107,78,255,0.4)'
           }}>Get a quote →</button>
-          <button onClick={() => navigate('/demo')} style={{
-            padding: '16px 40px', background: 'transparent', color: '#fff',
-            border: '1px solid #fff', borderRadius: '10px', fontSize: 16, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'Inter, sans-serif'
-          }}>Try a demo</button>
           <button onClick={() => navigate('/login')} style={{
             padding: '16px 40px', background: 'transparent', color: '#fff',
             border: '1px solid #3F3F46', borderRadius: '10px', fontSize: 16, fontWeight: 600,
