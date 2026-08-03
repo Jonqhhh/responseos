@@ -14,9 +14,11 @@ import Login from './pages/Login'
 import Landing from './pages/Landing'
 import Quote from './pages/Quote'
 import Pricing from './pages/Pricing'
+import Hardware from './pages/Hardware'
 import Search from './components/Search'
 import NotificationBell from './components/NotificationBell'
 import PageTransition from './components/PageTransition'
+import OnboardingWizard from './components/OnboardingWizard'
 import './index.css'
 
 const NAV = [
@@ -48,8 +50,15 @@ function AnimatedRoutes() {
 }
 
 function AppShell({ user, handleLogout }) {
+  const [showOnboarding, setShowOnboarding] = useState(!user?.onboarded)
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+
+      {showOnboarding && (
+        <OnboardingWizard user={user} onComplete={() => setShowOnboarding(false)} />
+      )}
+
       <aside className="sidebar" style={{
         width: 240, flexShrink: 0,
         background: 'var(--sidebar-bg)',
@@ -202,11 +211,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/home"    element={<Landing />} />
-        <Route path="/login"   element={user ? <Navigate to="/" /> : <Login onLogin={setUser} />} />
-        <Route path="/quote"   element={<Quote />} />
-        <Route path="/pricing" element={<Pricing />} />
-        <Route path="/*"       element={user ? <AppShell user={user} handleLogout={handleLogout} /> : <Navigate to="/home" />} />
+        <Route path="/home"     element={<Landing />} />
+        <Route path="/login"    element={user ? <Navigate to="/" /> : <Login onLogin={setUser} />} />
+        <Route path="/quote"    element={<Quote />} />
+        <Route path="/pricing"  element={<Pricing />} />
+        <Route path="/hardware" element={<Hardware />} />
+        <Route path="/*"        element={user ? <AppShell user={user} handleLogout={handleLogout} /> : <Navigate to="/home" />} />
       </Routes>
     </BrowserRouter>
   )
