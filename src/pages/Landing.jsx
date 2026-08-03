@@ -326,6 +326,36 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Hardware teaser — no button, just vision */}
+      <section style={{ background: '#0F0A2E', padding: '72px 60px', textAlign: 'center', borderTop: '1px solid rgba(107,78,255,0.2)' }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '5px 14px', borderRadius: 99,
+          background: 'rgba(107,78,255,0.2)', color: '#A78BFA',
+          fontSize: 12, fontWeight: 600, letterSpacing: '.04em',
+          marginBottom: 20, border: '1px solid rgba(107,78,255,0.3)'
+        }}>
+          🚧 Coming soon
+        </div>
+        <h2 style={{ fontSize: 36, fontWeight: 800, color: '#fff', marginBottom: 14, letterSpacing: '-.02em' }}>
+          ResponseOS is going physical.
+        </h2>
+        <p style={{ fontSize: 16, color: '#71717A', maxWidth: 560, margin: '0 auto 32px' }}>
+          Site kiosks, biometric access terminals, and IoT sensor integration — bringing compliance intelligence directly to your job sites and critical facilities. Hardware suite currently in development.
+        </p>
+        <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {['Site Kiosks', 'Biometric Terminals', 'IoT Sensors', 'Badge Scanners'].map(item => (
+            <div key={item} style={{
+              padding: '8px 16px', borderRadius: 99,
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+              fontSize: 13, color: '#71717A', fontWeight: 500
+            }}>
+              {item}
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="landing-cta" style={{ background: '#1C1C1E', padding: '80px 60px', textAlign: 'center' }}>
         <img src="/logo.svg" alt="ResponseOS" style={{ height: 48, objectFit: 'contain', marginBottom: 28 }} />
