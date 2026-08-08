@@ -2,6 +2,8 @@ import { useState } from 'react'
 import Modal from './Modal'
 import { supabase } from '../lib/supabase'
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+
 export default function AddUserModal({ onClose, onSaved }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -22,50 +24,49 @@ export default function AddUserModal({ onClose, onSaved }) {
       setError('Please fill in name, email, and password.')
       return
     }
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters.')
+      return
+    }
     setLoading(true)
     setError(null)
 
-    // create auth account
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: form.email,
-      password: form.password,
-      email_confirm: true
-    })
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/create-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({
+          full_name: form.full_name,
+          email: form.email,
+          password: form.password,
+          role: form.role,
+          department: form.department,
+        })
+      })
 
-    if (authError) {
-      setError(authError.message)
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+
       setLoading(false)
-      return
-    }
-
-    // create profile in public.users
-    const { error: profileError } = await supabase.from('users').insert({
-      id: authData.user.id,
-      full_name: form.full_name,
-      email: form.email,
-      role: form.role,
-      department: form.department,
-      is_active: true
-    })
-
-    if (profileError) {
-      setError(profileError.message)
+      onSaved('User created successfully.')
+      onClose()
+    } catch (e) {
+      setError(e.message)
       setLoading(false)
-      return
     }
-
-    setLoading(false)
-    onSaved()
-    onClose()
   }
 
   const inputStyle = {
     width: '100%', padding: '9px 12px',
-    borderRadius: 6, border: '0.5px solid var(--border2)',
-    background: 'var(--surface2)', color: 'var(--text)',
-    fontSize: 13, fontFamily: 'var(--font)', outline: 'none'
+    borderRadius: 6, border: '1px solid #E4E6EF',
+    background: '#fff', color: '#0F1117',
+    fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none'
   }
-  const labelStyle = { fontSize: 12, color: 'var(--text2)', marginBottom: 5, display: 'block' }
+  const labelStyle = { fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 5, display: 'block' }
 
   return (
     <Modal title="Add user" onClose={onClose}>
@@ -85,10 +86,13 @@ export default function AddUserModal({ onClose, onSaved }) {
         </div>
 
         <div>
-          <label style={labelStyle}>Password *</label>
-          <input type="password" placeholder="Temporary password"
+          <label style={labelStyle}>Temporary password *</label>
+          <input type="password" placeholder="Min. 6 characters"
             value={form.password} onChange={e => set('password', e.target.value)}
             style={inputStyle} />
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>
+            The user can change this after logging in from their Profile page.
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -111,8 +115,8 @@ export default function AddUserModal({ onClose, onSaved }) {
 
         {error && (
           <div style={{
-            background: 'var(--red-dim)', border: '0.5px solid var(--red)',
-            borderRadius: 6, padding: '10px 12px', fontSize: 13, color: '#FCA5A5'
+            background: '#FEF2F2', border: '1px solid #FECACA',
+            borderRadius: 6, padding: '10px 12px', fontSize: 13, color: '#DC2626'
           }}>{error}</div>
         )}
 
