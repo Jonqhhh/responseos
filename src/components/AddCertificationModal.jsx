@@ -76,7 +76,7 @@ export default function AddCertificationModal({ onClose, onSaved }) {
     })
 
     setLoading(false)
-    onSaved()
+    onSaved('Certification added successfully.')
     onClose()
   }
 

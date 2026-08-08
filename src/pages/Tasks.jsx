@@ -5,6 +5,7 @@ import { LoadingState, ErrorState } from '../components/States'
 import PageHeader from '../components/PageHeader'
 import AssignTaskModal from '../components/AssignTaskModal'
 import EditTaskModal from '../components/EditTaskModal'
+import Toast from '../components/Toast'
 import { supabase } from '../lib/supabase'
 
 export default function Tasks() {
@@ -13,6 +14,7 @@ export default function Tasks() {
   const [showAdd, setShowAdd] = useState(false)
   const [editing, setEditing] = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
+  const [toast, setToast] = useState(null)
 
   useState(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -37,15 +39,35 @@ export default function Tasks() {
     complete: '#059669', scheduled: '#6B4EFF'
   }
 
+  function showToast(message, type = 'success') {
+    setToast({ message, type, id: Date.now() })
+  }
+
   return (
     <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {showAdd && <AssignTaskModal onClose={() => setShowAdd(false)} onSaved={refetch} currentUser={currentUser} />}
+      {toast && (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {showAdd && (
+        <AssignTaskModal
+          onClose={() => setShowAdd(false)}
+          onSaved={() => { refetch(); showToast('Task assigned successfully.') }}
+          currentUser={currentUser}
+        />
+      )}
+
       {!!editing && (
         <EditTaskModal
           task={editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); refetch() }}
+          onSaved={(msg, type) => { setEditing(null); refetch(); showToast(msg || 'Task updated.', type || 'success') }}
         />
       )}
 

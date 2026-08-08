@@ -7,6 +7,7 @@ export default function EditTaskModal({ task, onClose, onSaved }) {
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [form, setForm] = useState({
     assigned_to: task.assigned_to || '',
     title: task.title || '',
@@ -38,26 +39,27 @@ export default function EditTaskModal({ task, onClose, onSaved }) {
       .eq('id', task.id)
     if (error) { setError(error.message); setLoading(false); return }
     setLoading(false)
-    onSaved()
     onClose()
+    onSaved('Task updated successfully.', 'success')
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete "${task.title}"? This cannot be undone.`)) return
     setDeleting(true)
-    await supabase.from('tasks').delete().eq('id', task.id)
+    setError(null)
+    const { error } = await supabase.from('tasks').delete().eq('id', task.id)
+    if (error) { setError(error.message); setDeleting(false); setConfirmDelete(false); return }
     setDeleting(false)
-    onSaved()
     onClose()
+    onSaved('Task deleted.', 'error')
   }
 
   const inputStyle = {
     width: '100%', padding: '9px 12px',
-    borderRadius: 6, border: '0.5px solid var(--border2)',
-    background: 'var(--surface2)', color: 'var(--text)',
-    fontSize: 13, fontFamily: 'var(--font)', outline: 'none'
+    borderRadius: 6, border: '1px solid #E4E6EF',
+    background: '#fff', color: '#0F1117',
+    fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none'
   }
-  const labelStyle = { fontSize: 12, color: 'var(--text2)', marginBottom: 5, display: 'block' }
+  const labelStyle = { fontSize: 12, color: '#6B7280', marginBottom: 5, display: 'block', fontWeight: 600 }
 
   return (
     <Modal title="Edit task" onClose={onClose}>
@@ -112,24 +114,52 @@ export default function EditTaskModal({ task, onClose, onSaved }) {
 
         {error && (
           <div style={{
-            background: 'var(--red-dim)', border: '0.5px solid var(--red)',
-            borderRadius: 6, padding: '10px 12px', fontSize: 13, color: '#FCA5A5'
+            background: '#FEF2F2', border: '1px solid #FECACA',
+            borderRadius: 6, padding: '10px 12px', fontSize: 13, color: '#DC2626'
           }}>{error}</div>
         )}
 
+        {/* Delete confirmation */}
+        {confirmDelete && (
+          <div style={{
+            background: '#FEF2F2', border: '1px solid #FECACA',
+            borderRadius: 8, padding: '14px 16px'
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#DC2626', marginBottom: 10 }}>
+              Are you sure you want to delete "{task.title}"? This cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handleDelete} disabled={deleting} style={{
+                padding: '7px 16px', borderRadius: 6, border: 'none',
+                background: '#DC2626', color: '#fff', fontSize: 13, fontWeight: 600,
+                cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1
+              }}>
+                {deleting ? 'Deleting...' : 'Yes, delete'}
+              </button>
+              <button onClick={() => setConfirmDelete(false)} style={{
+                padding: '7px 16px', borderRadius: 6,
+                border: '1px solid #E4E6EF', background: '#fff',
+                color: '#6B7280', fontSize: 13, cursor: 'pointer'
+              }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', marginTop: 4 }}>
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleting}
-            style={{
-              padding: '8px 14px', borderRadius: 6, border: '0.5px solid var(--red)',
-              background: 'var(--red-dim)', color: '#FCA5A5', fontSize: 13,
-              cursor: 'pointer', opacity: deleting ? 0.6 : 1
-            }}>
-            {deleting ? 'Deleting...' : 'Delete'}
-          </button>
-          <div style={{ display: 'flex', gap: 8 }}>
+          {!confirmDelete && (
+            <button onClick={() => setConfirmDelete(true)} disabled={loading || deleting}
+              style={{
+                padding: '8px 14px', borderRadius: 6,
+                border: '1px solid #FECACA', background: '#FEF2F2',
+                color: '#DC2626', fontSize: 13, cursor: 'pointer',
+                opacity: loading || deleting ? 0.6 : 1
+              }}>
+              Delete
+            </button>
+          )}
+          <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button className="btn btn-primary" onClick={handleSave}
               disabled={loading} style={{ opacity: loading ? 0.6 : 1 }}>

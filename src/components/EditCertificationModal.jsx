@@ -4,8 +4,10 @@ import { supabase } from '../lib/supabase'
 
 export default function EditCertificationModal({ cert, onClose, onSaved }) {
   const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [docUrl, setDocUrl] = useState(cert.doc_url || null)
   const [docName, setDocName] = useState(cert.doc_url ? 'Existing document' : null)
   const [form, setForm] = useState({
@@ -24,23 +26,14 @@ export default function EditCertificationModal({ cert, onClose, onSaved }) {
     const file = e.target.files[0]
     if (!file) return
     if (file.size > 10 * 1024 * 1024) { setError('File must be under 10MB.'); return }
-
     setUploading(true)
     setError(null)
-
     const ext = file.name.split('.').pop()
     const fileName = `${cert.id}-${Date.now()}.${ext}`
-
     const { error: uploadError } = await supabase.storage
-      .from('certifications')
-      .upload(fileName, file, { upsert: true })
-
+      .from('certifications').upload(fileName, file, { upsert: true })
     if (uploadError) { setError(uploadError.message); setUploading(false); return }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('certifications')
-      .getPublicUrl(fileName)
-
+    const { data: { publicUrl } } = supabase.storage.from('certifications').getPublicUrl(fileName)
     setDocUrl(publicUrl)
     setDocName(file.name)
     setUploading(false)
@@ -53,37 +46,42 @@ export default function EditCertificationModal({ cert, onClose, onSaved }) {
     }
     setLoading(true)
     setError(null)
-
     const { error } = await supabase
       .from('certifications')
       .update({ ...form, doc_url: docUrl })
       .eq('id', cert.id)
-
     if (error) { setError(error.message); setLoading(false); return }
-
     await supabase.from('audit_logs').insert({
       action: 'certification_updated',
       table_name: 'certifications',
       after_state: { cert: form.cert_name }
     })
-
     setLoading(false)
-    onSaved()
     onClose()
+    onSaved('Certification updated successfully.', 'success')
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete "${cert.cert_name}"? This cannot be undone.`)) return
-    setLoading(true)
-    await supabase.from('certifications').delete().eq('id', cert.id)
+    setDeleting(true)
+    setError(null)
+    const { error } = await supabase
+      .from('certifications')
+      .delete()
+      .eq('id', cert.id)
+    if (error) {
+      setError(error.message)
+      setDeleting(false)
+      setConfirmDelete(false)
+      return
+    }
     await supabase.from('audit_logs').insert({
       action: 'certification_deleted',
       table_name: 'certifications',
       after_state: { cert: cert.cert_name }
     })
-    setLoading(false)
-    onSaved()
+    setDeleting(false)
     onClose()
+    onSaved('Certification deleted.', 'error')
   }
 
   const inputStyle = {
@@ -178,16 +176,47 @@ export default function EditCertificationModal({ cert, onClose, onSaved }) {
           </div>
         )}
 
+        {/* Delete confirmation */}
+        {confirmDelete && (
+          <div style={{
+            background: '#FEF2F2', border: '1px solid #FECACA',
+            borderRadius: 8, padding: '14px 16px'
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#DC2626', marginBottom: 10 }}>
+              Are you sure you want to delete "{cert.cert_name}"? This cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handleDelete} disabled={deleting} style={{
+                padding: '7px 16px', borderRadius: 6, border: 'none',
+                background: '#DC2626', color: '#fff', fontSize: 13, fontWeight: 600,
+                cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1
+              }}>
+                {deleting ? 'Deleting...' : 'Yes, delete'}
+              </button>
+              <button onClick={() => setConfirmDelete(false)} style={{
+                padding: '7px 16px', borderRadius: 6,
+                border: '1px solid #E4E6EF', background: '#fff',
+                color: '#6B7280', fontSize: 13, cursor: 'pointer'
+              }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', marginTop: 4 }}>
-          <button onClick={handleDelete} disabled={loading}
-            style={{
-              padding: '8px 14px', borderRadius: 6,
-              border: '1px solid #FECACA', background: '#FEF2F2',
-              color: '#DC2626', fontSize: 13, cursor: 'pointer', opacity: loading ? 0.6 : 1
-            }}>
-            Delete
-          </button>
-          <div style={{ display: 'flex', gap: 8 }}>
+          {!confirmDelete && (
+            <button onClick={() => setConfirmDelete(true)} disabled={loading || deleting}
+              style={{
+                padding: '8px 14px', borderRadius: 6,
+                border: '1px solid #FECACA', background: '#FEF2F2',
+                color: '#DC2626', fontSize: 13, cursor: 'pointer',
+                opacity: loading || deleting ? 0.6 : 1
+              }}>
+              Delete
+            </button>
+          )}
+          <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button className="btn btn-primary" onClick={handleSave}
               disabled={loading || uploading} style={{ opacity: loading || uploading ? 0.6 : 1 }}>

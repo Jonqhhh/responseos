@@ -5,6 +5,7 @@ import { LoadingState, ErrorState } from '../components/States'
 import PageHeader from '../components/PageHeader'
 import AddCertificationModal from '../components/AddCertificationModal'
 import EditCertificationModal from '../components/EditCertificationModal'
+import Toast from '../components/Toast'
 
 function daysUntil(dateStr) {
   const diff = new Date(dateStr) - new Date()
@@ -16,6 +17,7 @@ export default function Certifications() {
   const certs = data ?? []
   const [showAdd, setShowAdd] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [toast, setToast] = useState(null)
 
   if (loading) return <LoadingState />
   if (error) return <ErrorState message={error} />
@@ -24,15 +26,34 @@ export default function Certifications() {
   const expiring = certs.filter(c => c.status === 'expiring').length
   const expired  = certs.filter(c => c.status === 'expired').length
 
+  function showToast(message, type = 'success') {
+    setToast({ message, type, id: Date.now() })
+  }
+
   return (
     <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {showAdd && <AddCertificationModal onClose={() => setShowAdd(false)} onSaved={refetch} />}
+      {toast && (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {showAdd && (
+        <AddCertificationModal
+          onClose={() => setShowAdd(false)}
+          onSaved={(msg) => { refetch(); showToast(msg || 'Certification added successfully.') }}
+        />
+      )}
+
       {!!editing && (
         <EditCertificationModal
           cert={editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); refetch() }}
+          onSaved={(msg, type) => { setEditing(null); refetch(); showToast(msg || 'Certification updated.', type || 'success') }}
         />
       )}
 
