@@ -19,16 +19,16 @@ export default function Landing() {
           <div className="landing-nav-text">
             <a href="#features" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>Features</a>
             <a href="#how" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>How it works</a>
-            <a href="/pricing" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>Pricing</a>
           </div>
           <button onClick={() => navigate('/quote')} style={{
-            padding: '9px 18px', background: '#EEF0FF', color: '#6B4EFF',
-            border: '1px solid #C7C0FF', borderRadius: '8px', fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'Inter, sans-serif'
-          }}>Get a quote</button>
-          <button onClick={() => navigate('/login')} style={{
             padding: '9px 22px', background: '#6B4EFF', color: '#fff',
-            border: 'none', borderRadius: '8px', fontSize: 14, fontWeight: 600,
+            border: 'none', borderRadius: '8px', fontSize: 14, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+            boxShadow: '0 2px 8px rgba(107,78,255,0.3)'
+          }}>Get a quote →</button>
+          <button onClick={() => navigate('/login')} style={{
+            padding: '9px 18px', background: 'transparent', color: '#6B7280',
+            border: '1px solid #E4E6EF', borderRadius: '8px', fontSize: 14, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'Inter, sans-serif'
           }}>Sign in</button>
         </div>
@@ -58,18 +58,18 @@ export default function Landing() {
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <button onClick={() => navigate('/quote')} style={{
-              padding: '13px 28px', background: '#6B4EFF', color: '#fff',
-              border: 'none', borderRadius: '8px', fontSize: 15, fontWeight: 700,
+              padding: '14px 32px', background: '#6B4EFF', color: '#fff',
+              border: 'none', borderRadius: '8px', fontSize: 16, fontWeight: 700,
               cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-              boxShadow: '0 4px 12px rgba(107,78,255,0.3)'
+              boxShadow: '0 4px 16px rgba(107,78,255,0.4)'
             }}>Get a quote →</button>
             <button onClick={() => navigate('/login')} style={{
-              padding: '13px 28px', background: '#fff', color: '#6B7280',
+              padding: '14px 28px', background: '#fff', color: '#6B7280',
               border: '1px solid #E4E6EF', borderRadius: '8px', fontSize: 15, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'Inter, sans-serif'
             }}>Sign in</button>
             <a href="#features" style={{
-              padding: '13px 28px', fontSize: 15, fontWeight: 600,
+              padding: '14px 28px', fontSize: 15, fontWeight: 600,
               borderRadius: '8px', border: '1px solid #E4E6EF',
               color: '#6B7280', textDecoration: 'none',
               display: 'inline-flex', alignItems: 'center', background: '#fff'
@@ -326,7 +326,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Hardware teaser — no button, just vision */}
+      {/* Hardware teaser */}
       <section style={{ background: '#0F0A2E', padding: '72px 60px', textAlign: 'center', borderTop: '1px solid rgba(107,78,255,0.2)' }}>
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -335,13 +335,13 @@ export default function Landing() {
           fontSize: 12, fontWeight: 600, letterSpacing: '.04em',
           marginBottom: 20, border: '1px solid rgba(107,78,255,0.3)'
         }}>
-          🚧 Coming soon
+          🚧 Coming soon — Hardware Suite
         </div>
         <h2 style={{ fontSize: 36, fontWeight: 800, color: '#fff', marginBottom: 14, letterSpacing: '-.02em' }}>
           ResponseOS is going physical.
         </h2>
-        <p style={{ fontSize: 16, color: '#71717A', maxWidth: 560, margin: '0 auto 32px' }}>
-          Site kiosks, biometric access terminals, and IoT sensor integration — bringing compliance intelligence directly to your job sites and critical facilities. Hardware suite currently in development.
+        <p style={{ fontSize: 16, color: '#71717A', marginBottom: 32, maxWidth: 520, margin: '0 auto 32px' }}>
+          Site kiosks, biometric access terminals, and IoT sensor integration — bringing compliance intelligence directly to your job sites and critical facilities.
         </p>
         <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
           {['Site Kiosks', 'Biometric Terminals', 'IoT Sensors', 'Badge Scanners'].map(item => (
@@ -356,35 +356,38 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="landing-cta" style={{ background: '#1C1C1E', padding: '80px 60px', textAlign: 'center' }}>
-        <img src="/logo.png" alt="ResponseOS" style={{ height: 48, objectFit: 'contain', marginBottom: 28 }} />
-        <h2 style={{ fontSize: 40, fontWeight: 800, color: '#fff', marginBottom: 16, letterSpacing: '-.02em' }}>
+      {/* CTA — high emphasis on quote */}
+      <section className="landing-cta" style={{ background: '#6B4EFF', padding: '80px 60px', textAlign: 'center' }}>
+        <img src="/logo.png" alt="ResponseOS" style={{ height: 48, objectFit: 'contain', marginBottom: 28, filter: 'brightness(0) invert(1)' }} />
+        <h2 style={{ fontSize: 44, fontWeight: 800, color: '#fff', marginBottom: 16, letterSpacing: '-.02em' }}>
           Ready to get audit-ready?
         </h2>
-        <p style={{ fontSize: 18, color: '#71717A', marginBottom: 40, maxWidth: 480, margin: '0 auto 40px' }}>
-          Join energy and infrastructure teams using ResponseOS to stay compliant, 24/7.
+        <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.8)', marginBottom: 40, maxWidth: 480, margin: '0 auto 40px' }}>
+          Tell us about your team and we'll put together a custom compliance plan within 24 hours. No commitment required.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => navigate('/quote')} style={{
-            padding: '16px 40px', background: '#6B4EFF', color: '#fff',
-            border: 'none', borderRadius: '10px', fontSize: 16, fontWeight: 700,
+            padding: '18px 48px', background: '#fff', color: '#6B4EFF',
+            border: 'none', borderRadius: '10px', fontSize: 17, fontWeight: 800,
             cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-            boxShadow: '0 4px 20px rgba(107,78,255,0.4)'
-          }}>Get a quote →</button>
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+          }}>Get a custom quote →</button>
           <button onClick={() => navigate('/login')} style={{
-            padding: '16px 40px', background: 'transparent', color: '#fff',
-            border: '1px solid #3F3F46', borderRadius: '10px', fontSize: 16, fontWeight: 600,
+            padding: '18px 40px', background: 'transparent', color: '#fff',
+            border: '2px solid rgba(255,255,255,0.4)', borderRadius: '10px', fontSize: 16, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'Inter, sans-serif'
           }}>Sign in</button>
+        </div>
+        <div style={{ marginTop: 24, fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
+          No spam. No commitment. Response within 24 hours.
         </div>
       </section>
 
       {/* Footer */}
       <footer className="landing-footer" style={{ padding: '28px 60px', borderTop: '1px solid #E4E6EF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff' }}>
         <img src="/logo.png" alt="ResponseOS" style={{ height: 36, objectFit: 'contain' }} />
-        <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>© 2026 ResponseOS · Built by ResponseOS · Houston, TX</div>
-        <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>responseos.netlify.app</div>
+        <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>© 2026 ResponseOS · Houston, TX</div>
+        <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>responseos.net</div>
       </footer>
 
     </div>

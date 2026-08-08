@@ -14,7 +14,6 @@ import DocumentVault from './pages/DocumentVault'
 import Login from './pages/Login'
 import Landing from './pages/Landing'
 import Quote from './pages/Quote'
-import Pricing from './pages/Pricing'
 import Hardware from './pages/Hardware'
 import Search from './components/Search'
 import NotificationBell from './components/NotificationBell'
@@ -151,7 +150,7 @@ function AppShell({ user, handleLogout }) {
 
       <nav className="bottom-nav">
         <div className="bottom-nav-inner">
-          {NAV.slice(0, 6).map(n => (
+          {NAV_ALL.slice(0, 6).map(n => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'}
               className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
             >
@@ -228,7 +227,6 @@ export default function App() {
         <Route path="/home"     element={<Landing />} />
         <Route path="/login"    element={user ? <Navigate to="/" /> : <Login onLogin={setUser} />} />
         <Route path="/quote"    element={<Quote />} />
-        <Route path="/pricing"  element={<Pricing />} />
         <Route path="/hardware" element={<Hardware />} />
         <Route path="/*"        element={user ? <AppShell user={user} handleLogout={handleLogout} /> : <Navigate to="/home" />} />
       </Routes>
