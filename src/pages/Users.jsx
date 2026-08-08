@@ -5,6 +5,7 @@ import { LoadingState, ErrorState } from '../components/States'
 import PageHeader from '../components/PageHeader'
 import AddUserModal from '../components/AddUserModal'
 import EditUserModal from '../components/EditUserModal'
+import Toast from '../components/Toast'
 
 async function getUsers() {
   const { data, error } = await supabase
@@ -25,6 +26,7 @@ export default function Users() {
   const users = data ?? []
   const [showAdd, setShowAdd] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [toast, setToast] = useState(null)
 
   if (loading) return <LoadingState />
   if (error)   return <ErrorState message={error} />
@@ -32,15 +34,34 @@ export default function Users() {
   const active   = users.filter(u => u.is_active)
   const inactive = users.filter(u => !u.is_active)
 
+  function showToast(message, type = 'success') {
+    setToast({ message, type, id: Date.now() })
+  }
+
   return (
     <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {showAdd && <AddUserModal onClose={() => setShowAdd(false)} onSaved={refetch} />}
+      {toast && (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {showAdd && (
+        <AddUserModal
+          onClose={() => setShowAdd(false)}
+          onSaved={() => { refetch(); showToast('User added successfully.') }}
+        />
+      )}
+
       {!!editing && (
         <EditUserModal
           user={editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); refetch() }}
+          onSaved={(msg, type) => { setEditing(null); refetch(); showToast(msg || 'User updated.', type || 'success') }}
         />
       )}
 

@@ -3,16 +3,18 @@ import { useData } from '../lib/useData'
 import { getAlerts, acknowledgeAlert } from '../lib/supabase'
 import { LoadingState, ErrorState } from '../components/States'
 import PageHeader from '../components/PageHeader'
+import Toast from '../components/Toast'
 
-const tierColor = { critical: '#DC2626', warning: '#D97706', info: '#6B4EFF' }
-const tierBg    = { critical: '#FEF2F2', warning: '#FFFBEB', info: '#EEF0FF' }
+const tierColor  = { critical: '#DC2626', warning: '#D97706', info: '#6B4EFF' }
+const tierBg     = { critical: '#FEF2F2', warning: '#FFFBEB', info: '#EEF0FF' }
 const tierBorder = { critical: '#FECACA', warning: '#FDE68A', info: '#C7C0FF' }
-const tierIcon  = { critical: '▲', warning: '●', info: 'ℹ' }
+const tierIcon   = { critical: '▲', warning: '●', info: 'ℹ' }
 
 export default function Alerts() {
   const { data, loading, error, refetch } = useData(getAlerts)
   const alerts = data ?? []
   const [acknowledging, setAcknowledging] = useState(null)
+  const [toast, setToast] = useState(null)
 
   if (loading) return <LoadingState />
   if (error)   return <ErrorState message={error} />
@@ -22,15 +24,30 @@ export default function Alerts() {
   const info     = alerts.filter(a => a.tier === 'info').length
   const unread   = alerts.filter(a => !a.acknowledged).length
 
+  function showToast(message, type = 'success') {
+    setToast({ message, type, id: Date.now() })
+  }
+
   async function handleAcknowledge(id) {
     setAcknowledging(id)
     await acknowledgeAlert(id)
     await refetch()
     setAcknowledging(null)
+    showToast('Alert acknowledged.', 'success')
   }
 
   return (
     <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {toast && (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <PageHeader
         title="Alerts"
         subtitle="Platform-generated compliance alerts, warnings, and escalations."
