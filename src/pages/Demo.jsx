@@ -44,7 +44,7 @@ export default function Demo() {
       alignItems: 'center', justifyContent: 'center',
       fontFamily: 'Inter, sans-serif', gap: 24
     }}>
-      <img src="/logo.svg" alt="ResponseOS" style={{ height: 56, objectFit: 'contain', marginBottom: 8 }} />
+      <img src="/logo.png" alt="ResponseOS" style={{ height: 56, objectFit: 'contain', marginBottom: 8 }} />
 
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         {[0, 150, 300].map(d => (

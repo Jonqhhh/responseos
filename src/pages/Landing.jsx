@@ -14,7 +14,7 @@ export default function Landing() {
         position: 'sticky', top: 0, zIndex: 100,
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
       }}>
-        <img src="/logo.svg" alt="ResponseOS" style={{ height: 44, objectFit: 'contain' }} />
+        <img src="/logo.png" alt="ResponseOS" style={{ height: 44, objectFit: 'contain' }} />
         <div className="landing-nav-links">
           <div className="landing-nav-text">
             <a href="#features" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>Features</a>
@@ -101,7 +101,7 @@ export default function Landing() {
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#EF4444' }} />
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#F59E0B' }} />
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10B981' }} />
-              <img src="/logo.svg" alt="ResponseOS" style={{ height: 20, objectFit: 'contain', marginLeft: 8 }} />
+              <img src="/logo.png" alt="ResponseOS" style={{ height: 20, objectFit: 'contain', marginLeft: 8 }} />
             </div>
             <div style={{ padding: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
@@ -358,7 +358,7 @@ export default function Landing() {
 
       {/* CTA */}
       <section className="landing-cta" style={{ background: '#1C1C1E', padding: '80px 60px', textAlign: 'center' }}>
-        <img src="/logo.svg" alt="ResponseOS" style={{ height: 48, objectFit: 'contain', marginBottom: 28 }} />
+        <img src="/logo.png" alt="ResponseOS" style={{ height: 48, objectFit: 'contain', marginBottom: 28 }} />
         <h2 style={{ fontSize: 40, fontWeight: 800, color: '#fff', marginBottom: 16, letterSpacing: '-.02em' }}>
           Ready to get audit-ready?
         </h2>
@@ -382,7 +382,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="landing-footer" style={{ padding: '28px 60px', borderTop: '1px solid #E4E6EF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff' }}>
-        <img src="/logo.svg" alt="ResponseOS" style={{ height: 36, objectFit: 'contain' }} />
+        <img src="/logo.png" alt="ResponseOS" style={{ height: 36, objectFit: 'contain' }} />
         <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>© 2026 ResponseOS · Built by ResponseOS · Houston, TX</div>
         <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>responseos.netlify.app</div>
       </footer>

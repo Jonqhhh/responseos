@@ -56,7 +56,7 @@ export default function Quote() {
         position: 'sticky', top: 0, zIndex: 100,
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
       }}>
-        <img src="/logo.svg" alt="ResponseOS" onClick={() => navigate('/home')}
+        <img src="/logo.png" alt="ResponseOS" onClick={() => navigate('/home')}
           style={{ height: 44, objectFit: 'contain', cursor: 'pointer' }} />
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button onClick={() => navigate('/home')} style={{

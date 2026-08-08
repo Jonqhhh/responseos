@@ -66,7 +66,7 @@ function AppShell({ user, handleLogout }) {
         padding: '0 0 20px'
       }}>
         <div style={{ padding: '16px 16px 12px', borderBottom: '0.5px solid #2C2C2E' }}>
-          <img src="/logo.svg" alt="ResponseOS" style={{ width: '100%', height: 52, objectFit: 'contain', objectPosition: 'left' }} />
+          <img src="/logo.png" alt="ResponseOS" style={{ width: '100%', height: 52, objectFit: 'contain', objectPosition: 'left' }} />
         </div>
         <nav style={{ flex: 1, padding: '8px 12px' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: '#52525B', letterSpacing: '.08em', textTransform: 'uppercase', padding: '6px 8px', marginBottom: 4 }}>

@@ -13,7 +13,7 @@ export default function Hardware() {
         background: 'rgba(15,10,46,0.9)', backdropFilter: 'blur(12px)',
         position: 'sticky', top: 0, zIndex: 100,
       }}>
-        <img src="/logo.svg" alt="ResponseOS" onClick={() => navigate('/home')}
+        <img src="/logo.png" alt="ResponseOS" onClick={() => navigate('/home')}
           style={{ height: 44, objectFit: 'contain', cursor: 'pointer' }} />
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button onClick={() => navigate('/home')} style={{
@@ -262,7 +262,7 @@ export default function Hardware() {
 
       {/* Footer */}
       <footer style={{ padding: '24px 60px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <img src="/logo.svg" alt="ResponseOS" style={{ height: 36, objectFit: 'contain' }} />
+        <img src="/logo.png" alt="ResponseOS" style={{ height: 36, objectFit: 'contain' }} />
         <div style={{ fontSize: 12, color: '#52525B', fontWeight: 500 }}>© 2026 ResponseOS · Houston, TX</div>
         <div style={{ fontSize: 12, color: '#52525B', fontWeight: 500 }}>responseos.netlify.app</div>
       </footer>

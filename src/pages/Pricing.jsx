@@ -14,7 +14,7 @@ export default function Pricing() {
         position: 'sticky', top: 0, zIndex: 100,
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
       }}>
-        <img src="/logo.svg" alt="ResponseOS" onClick={() => navigate('/home')}
+        <img src="/logo.png" alt="ResponseOS" onClick={() => navigate('/home')}
           style={{ height: 44, objectFit: 'contain', cursor: 'pointer' }} />
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button onClick={() => navigate('/home')} style={{
@@ -207,7 +207,7 @@ export default function Pricing() {
 
       {/* CTA */}
       <section style={{ background: '#1C1C1E', padding: '72px 60px', textAlign: 'center' }}>
-        <img src="/logo.svg" alt="ResponseOS" style={{ height: 48, objectFit: 'contain', marginBottom: 28 }} />
+        <img src="/logo.png" alt="ResponseOS" style={{ height: 48, objectFit: 'contain', marginBottom: 28 }} />
         <h2 style={{ fontSize: 36, fontWeight: 800, color: '#fff', marginBottom: 14, letterSpacing: '-.02em' }}>
           Ready to get started?
         </h2>
@@ -231,7 +231,7 @@ export default function Pricing() {
 
       {/* Footer */}
       <footer style={{ padding: '24px 60px', borderTop: '1px solid #E4E6EF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff' }}>
-        <img src="/logo.svg" alt="ResponseOS" style={{ height: 36, objectFit: 'contain' }} />
+        <img src="/logo.png" alt="ResponseOS" style={{ height: 36, objectFit: 'contain' }} />
         <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>© 2026 ResponseOS · Houston, TX</div>
         <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>responseos.netlify.app</div>
       </footer>
