@@ -10,6 +10,7 @@ import AuditLog from './pages/AuditLog'
 import AIAssistant from './pages/AIAssistant'
 import Users from './pages/Users'
 import Profile from './pages/Profile'
+import DocumentVault from './pages/DocumentVault'
 import Login from './pages/Login'
 import Landing from './pages/Landing'
 import Quote from './pages/Quote'
@@ -21,13 +22,17 @@ import PageTransition from './components/PageTransition'
 import OnboardingWizard from './components/OnboardingWizard'
 import './index.css'
 
-const NAV = [
+const NAV_ALL = [
   { to: '/',        icon: '▣', label: 'Dashboard'      },
   { to: '/certs',   icon: '◈', label: 'Certifications' },
   { to: '/tasks',   icon: '◎', label: 'Tasks'          },
   { to: '/alerts',  icon: '△', label: 'Alerts'         },
   { to: '/ai',      icon: '◆', label: 'AI Assistant'   },
   { to: '/audit',   icon: '≡', label: 'Audit Log'      },
+]
+
+const NAV_ADMIN = [
+  { to: '/docs',    icon: '📁', label: 'Document Vault' },
   { to: '/users',   icon: '◉', label: 'Users'          },
 ]
 
@@ -42,6 +47,7 @@ function AnimatedRoutes() {
         <Route path="/alerts"  element={<PageTransition><Alerts /></PageTransition>} />
         <Route path="/ai"      element={<PageTransition><AIAssistant /></PageTransition>} />
         <Route path="/audit"   element={<PageTransition><AuditLog /></PageTransition>} />
+        <Route path="/docs"    element={<PageTransition><DocumentVault /></PageTransition>} />
         <Route path="/users"   element={<PageTransition><Users /></PageTransition>} />
         <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
       </Routes>
@@ -51,6 +57,8 @@ function AnimatedRoutes() {
 
 function AppShell({ user, handleLogout }) {
   const [showOnboarding, setShowOnboarding] = useState(user?.onboarded === false)
+  const isAdminOrAuditor = ['admin', 'auditor'].includes(user?.role)
+  const NAV = [...NAV_ALL, ...(isAdminOrAuditor ? NAV_ADMIN : [])]
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -68,7 +76,7 @@ function AppShell({ user, handleLogout }) {
         <div style={{ padding: '16px 16px 12px', borderBottom: '0.5px solid #2C2C2E' }}>
           <img src="/logo.png" alt="ResponseOS" style={{ width: '100%', height: 52, objectFit: 'contain', objectPosition: 'left' }} />
         </div>
-        <nav style={{ flex: 1, padding: '8px 12px' }}>
+        <nav style={{ flex: 1, padding: '8px 12px', overflowY: 'auto' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: '#52525B', letterSpacing: '.08em', textTransform: 'uppercase', padding: '6px 8px', marginBottom: 4 }}>
             Platform
           </div>
@@ -143,7 +151,7 @@ function AppShell({ user, handleLogout }) {
 
       <nav className="bottom-nav">
         <div className="bottom-nav-inner">
-          {NAV.map(n => (
+          {NAV.slice(0, 6).map(n => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'}
               className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
             >
