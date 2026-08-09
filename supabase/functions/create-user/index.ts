@@ -1,46 +1,52 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-// Setup type definitions for built-in Supabase Runtime APIs
-import "@supabase/functions-js/edge-runtime.d.ts";
-import { withSupabase } from "@supabase/server";
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST",
+        "Access-Control-Allow-Headers": "authorization, content-type",
+      }
+    })
+  }
 
-console.log("Hello from Functions!");
+  try {
+    const { full_name, email, password, role, department } = await req.json()
 
-// This endpoint uses 'publishable' | 'secret' access, apiKey is required.
-// Use publishable for Client-facing, key-validated endpoints
-// Use secret for Server-to-server, internal calls
-export default {
-  fetch: withSupabase({ auth: ["publishable", "secret"] }, async (req, ctx) => {
-    // Called by another service with a secret key
-    // ctx.supabaseAdmin bypasses RLS — use for privileged operations
-    /*
-    if (ctx.authMode === "secret") {
-      const { user_id } = await req.json();
-      const { data } = await ctx.supabaseAdmin.auth.admin.getUserById(user_id);
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL"),
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    )
 
-      return Response.json({
-        email: data?.user?.email,
-      });
-    }
-    */
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true
+    })
 
-    const { name } = await req.json();
+    if (authError) throw new Error(authError.message)
 
-    return Response.json({
-      message: `Hello ${name}!`,
-    });
-  }),
-};
+    const { error: profileError } = await supabaseAdmin.from("users").insert({
+      id: authData.user.id,
+      full_name,
+      email,
+      role,
+      department,
+      is_active: true,
+      onboarded: false
+    })
 
-/* To invoke locally:
+    if (profileError) throw new Error(profileError.message)
 
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
+    return new Response(JSON.stringify({ success: true, userId: authData.user.id }), {
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    })
 
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/create-user' \
-    --header 'apiKey: sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH' \
-    --data '{"name":"Functions"}'
-
-*/
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 400,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    })
+  }
+})
