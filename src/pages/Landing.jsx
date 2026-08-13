@@ -20,6 +20,11 @@ export default function Landing() {
             <a href="#features" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>Features</a>
             <a href="#how" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none', fontWeight: 500 }}>How it works</a>
           </div>
+          <button onClick={() => navigate('/demo')} style={{
+            padding: '9px 18px', background: 'rgba(107,78,255,0.08)', color: '#6B4EFF',
+            border: '1px solid rgba(107,78,255,0.25)', borderRadius: '8px', fontSize: 14, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+          }}>Try demo</button>
           <button onClick={() => navigate('/quote')} style={{
             padding: '9px 22px', background: '#6B4EFF', color: '#fff',
             border: 'none', borderRadius: '8px', fontSize: 14, fontWeight: 700,
@@ -63,17 +68,16 @@ export default function Landing() {
               cursor: 'pointer', fontFamily: 'Inter, sans-serif',
               boxShadow: '0 4px 16px rgba(107,78,255,0.4)'
             }}>Get a quote →</button>
+            <button onClick={() => navigate('/demo')} style={{
+              padding: '14px 28px', background: 'rgba(107,78,255,0.08)', color: '#6B4EFF',
+              border: '1px solid rgba(107,78,255,0.25)', borderRadius: '8px', fontSize: 15, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+            }}>Try demo free</button>
             <button onClick={() => navigate('/login')} style={{
               padding: '14px 28px', background: '#fff', color: '#6B7280',
               border: '1px solid #E4E6EF', borderRadius: '8px', fontSize: 15, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'Inter, sans-serif'
             }}>Sign in</button>
-            <a href="#features" style={{
-              padding: '14px 28px', fontSize: 15, fontWeight: 600,
-              borderRadius: '8px', border: '1px solid #E4E6EF',
-              color: '#6B7280', textDecoration: 'none',
-              display: 'inline-flex', alignItems: 'center', background: '#fff'
-            }}>See features</a>
           </div>
           <div className="landing-trust" style={{ marginTop: 40, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
             {['FERC Aligned', 'NERC CIP Ready', 'SOC 2 Compatible', 'ISO 27001'].map(b => (
@@ -356,7 +360,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA — high emphasis on quote */}
+      {/* CTA */}
       <section className="landing-cta" style={{ background: '#6B4EFF', padding: '80px 60px', textAlign: 'center' }}>
         <img src="/logo.png" alt="ResponseOS" style={{ height: 48, objectFit: 'contain', marginBottom: 28, filter: 'brightness(0) invert(1)' }} />
         <h2 style={{ fontSize: 44, fontWeight: 800, color: '#fff', marginBottom: 16, letterSpacing: '-.02em' }}>
@@ -372,9 +376,14 @@ export default function Landing() {
             cursor: 'pointer', fontFamily: 'Inter, sans-serif',
             boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
           }}>Get a custom quote →</button>
+          <button onClick={() => navigate('/demo')} style={{
+            padding: '18px 40px', background: 'rgba(255,255,255,0.15)', color: '#fff',
+            border: '2px solid rgba(255,255,255,0.4)', borderRadius: '10px', fontSize: 16, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+          }}>Try demo free</button>
           <button onClick={() => navigate('/login')} style={{
             padding: '18px 40px', background: 'transparent', color: '#fff',
-            border: '2px solid rgba(255,255,255,0.4)', borderRadius: '10px', fontSize: 16, fontWeight: 600,
+            border: '2px solid rgba(255,255,255,0.25)', borderRadius: '10px', fontSize: 16, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'Inter, sans-serif'
           }}>Sign in</button>
         </div>
