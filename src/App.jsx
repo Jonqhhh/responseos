@@ -19,6 +19,7 @@ import Login from './pages/Login'
 import Landing from './pages/Landing'
 import Quote from './pages/Quote'
 import Hardware from './pages/Hardware'
+import Demo from './pages/Demo'
 import Search from './components/Search'
 import NotificationBell from './components/NotificationBell'
 import PageTransition from './components/PageTransition'
@@ -52,7 +53,6 @@ function MoonrockSidebar({ children }) {
     const w = el.width
     const h = el.height
 
-    // Base moonrock gradient
     const base = ctx.createLinearGradient(0, 0, w, h)
     base.addColorStop(0,   '#EEEAF8')
     base.addColorStop(0.3, '#E5E0F5')
@@ -61,9 +61,8 @@ function MoonrockSidebar({ children }) {
     ctx.fillStyle = base
     ctx.fillRect(0, 0, w, h)
 
-    // Draw craters
     const craters = [
-      { x: 180, y: 60,  r: 18, depth: 0.3 },
+      { x: 180, y: 60,  r: 18, depth: 0.3  },
       { x: 40,  y: 140, r: 12, depth: 0.25 },
       { x: 160, y: 220, r: 22, depth: 0.35 },
       { x: 60,  y: 320, r: 15, depth: 0.28 },
@@ -76,7 +75,6 @@ function MoonrockSidebar({ children }) {
     ]
 
     craters.forEach(c => {
-      // Shadow (darker side)
       const shadow = ctx.createRadialGradient(c.x - c.r * 0.3, c.y - c.r * 0.3, 0, c.x, c.y, c.r)
       shadow.addColorStop(0,   `rgba(100,80,160,${c.depth * 0.6})`)
       shadow.addColorStop(0.6, `rgba(120,100,180,${c.depth * 0.3})`)
@@ -86,16 +84,14 @@ function MoonrockSidebar({ children }) {
       ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2)
       ctx.fill()
 
-      // Highlight (lighter side)
       const highlight = ctx.createRadialGradient(c.x + c.r * 0.4, c.y + c.r * 0.4, 0, c.x + c.r * 0.3, c.y + c.r * 0.3, c.r * 0.8)
-      highlight.addColorStop(0,   `rgba(255,255,255,${c.depth * 0.5})`)
-      highlight.addColorStop(1,   'rgba(255,255,255,0)')
+      highlight.addColorStop(0, `rgba(255,255,255,${c.depth * 0.5})`)
+      highlight.addColorStop(1, 'rgba(255,255,255,0)')
       ctx.fillStyle = highlight
       ctx.beginPath()
       ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2)
       ctx.fill()
 
-      // Rim
       ctx.strokeStyle = `rgba(140,120,190,${c.depth * 0.4})`
       ctx.lineWidth = 1
       ctx.beginPath()
@@ -103,33 +99,28 @@ function MoonrockSidebar({ children }) {
       ctx.stroke()
     })
 
-    // Noise texture
     for (let i = 0; i < 8000; i++) {
       const x = Math.random() * w
       const y = Math.random() * h
       const size = Math.random() * 1.2
       const alpha = Math.random() * 0.06
-      const light = Math.random() > 0.5
-      ctx.fillStyle = light
+      ctx.fillStyle = Math.random() > 0.5
         ? `rgba(255,255,255,${alpha})`
         : `rgba(100,80,160,${alpha})`
       ctx.fillRect(x, y, size, size)
     }
 
-    // Purple glow from top
     const topGlow = ctx.createLinearGradient(0, 0, 0, 200)
-    topGlow.addColorStop(0,   'rgba(139,92,246,0.08)')
-    topGlow.addColorStop(1,   'rgba(139,92,246,0)')
+    topGlow.addColorStop(0, 'rgba(139,92,246,0.08)')
+    topGlow.addColorStop(1, 'rgba(139,92,246,0)')
     ctx.fillStyle = topGlow
     ctx.fillRect(0, 0, w, 200)
 
-    // Right border glow
     const rightGlow = ctx.createLinearGradient(w - 30, 0, w, 0)
     rightGlow.addColorStop(0, 'rgba(139,92,246,0)')
     rightGlow.addColorStop(1, 'rgba(139,92,246,0.06)')
     ctx.fillStyle = rightGlow
     ctx.fillRect(w - 30, 0, 30, h)
-
   }, [])
 
   return (
@@ -383,6 +374,36 @@ function AnimatedRoutes() {
   )
 }
 
+function DemoBanner({ user }) {
+  if (!user?.is_demo) return null
+  const daysLeft = user.demo_expires_at
+    ? Math.max(0, Math.ceil((new Date(user.demo_expires_at) - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 14
+
+  return (
+    <div style={{
+      background: 'linear-gradient(90deg, rgba(124,58,237,0.9), rgba(88,28,235,0.9))',
+      backdropFilter: 'blur(12px)',
+      padding: '8px 20px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      flexShrink: 0, zIndex: 10,
+      borderBottom: '1px solid rgba(139,92,246,0.3)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#EDE9FF', fontWeight: 600 }}>
+        <span>🚀</span>
+        <span>Demo mode — <strong>{daysLeft} days</strong> remaining</span>
+      </div>
+      <a href="/quote" style={{
+        padding: '4px 12px', background: '#fff', color: '#7C3AED',
+        borderRadius: 6, fontSize: 11, fontWeight: 700,
+        textDecoration: 'none'
+      }}>
+        Upgrade →
+      </a>
+    </div>
+  )
+}
+
 function AppShell({ user, handleLogout }) {
   const [showOnboarding, setShowOnboarding] = useState(user?.onboarded === false)
   const isAdminOrAuditor = ['admin', 'auditor'].includes(user?.role)
@@ -397,7 +418,6 @@ function AppShell({ user, handleLogout }) {
         <OnboardingWizard user={user} onComplete={() => setShowOnboarding(false)} />
       )}
 
-      {/* Canvas-rendered moonrock sidebar */}
       <MoonrockSidebar>
         <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(139,92,246,0.12)' }}>
           <img src="/logo.png" alt="ResponseOS" style={{ width: '100%', height: 52, objectFit: 'contain', objectPosition: 'left' }} />
@@ -496,11 +516,11 @@ function AppShell({ user, handleLogout }) {
         </div>
       </MoonrockSidebar>
 
-      {/* Main content */}
       <main style={{
         flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column',
         background: 'transparent', position: 'relative', zIndex: 1
       }}>
+        <DemoBanner user={user} />
         <div style={{
           padding: '12px 20px',
           borderBottom: '1px solid rgba(139,92,246,0.15)',
@@ -519,7 +539,6 @@ function AppShell({ user, handleLogout }) {
         </div>
       </main>
 
-      {/* Mobile bottom nav */}
       <nav className="bottom-nav">
         <div className="bottom-nav-inner">
           {NAV_ALL.slice(0, 5).map(n => {
@@ -554,7 +573,7 @@ export default function App() {
       if (session) {
         const { data: profile } = await supabase
           .from('users')
-          .select('id, full_name, email, role, department, is_active, avatar_url, onboarded')
+          .select('id, full_name, email, role, department, is_active, avatar_url, onboarded, is_demo, demo_expires_at, demo_company')
           .eq('id', session.user.id)
           .single()
         if (profile) setUser(profile)
@@ -567,7 +586,7 @@ export default function App() {
       if (event === 'SIGNED_IN' && session) {
         const { data: profile } = await supabase
           .from('users')
-          .select('id, full_name, email, role, department, is_active, avatar_url, onboarded')
+          .select('id, full_name, email, role, department, is_active, avatar_url, onboarded, is_demo, demo_expires_at, demo_company')
           .eq('id', session.user.id)
           .single()
         if (profile) setUser(profile)
@@ -607,6 +626,7 @@ export default function App() {
         <Route path="/login"    element={user ? <Navigate to="/" /> : <Login onLogin={setUser} />} />
         <Route path="/quote"    element={<Quote />} />
         <Route path="/hardware" element={<Hardware />} />
+        <Route path="/demo"     element={<Demo />} />
         <Route path="/*"        element={user ? <AppShell user={user} handleLogout={handleLogout} /> : <Navigate to="/home" />} />
       </Routes>
     </BrowserRouter>
