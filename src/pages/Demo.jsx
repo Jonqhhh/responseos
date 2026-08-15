@@ -1,15 +1,24 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShieldCheck, CheckSquare, Bot, FolderLock, ScrollText, Bell } from 'lucide-react'
+import { ShieldCheck, CheckSquare, Bot, FolderLock, ScrollText, Bell, Calendar } from 'lucide-react'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 export default function Demo() {
   const navigate = useNavigate()
   const [step, setStep] = useState('form')
-  const [form, setForm] = useState({ full_name: '', email: '', company: '' })
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [credentials, setCredentials] = useState(null)
+  const [form, setForm] = useState({
+    full_name: '',
+    email: '',
+    company: '',
+    industry: '',
+    team_size: '',
+    compliance_needs: '',
+    availability: '',
+    timezone: ''
+  })
 
   function set(field, value) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -17,23 +26,35 @@ export default function Demo() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.full_name || !form.email) return
-    setStep('loading')
+    if (!form.full_name || !form.email || !form.company) return
+    setLoading(true)
     setError(null)
+
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/demo-signup`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/quote-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          type: 'DEMO REQUEST',
+          message: `
+DEMO REQUEST — Schedule a call
+
+Company: ${form.company}
+Industry: ${form.industry}
+Team size: ${form.team_size}
+Compliance needs: ${form.compliance_needs}
+Availability: ${form.availability}
+Timezone: ${form.timezone}
+          `.trim()
+        })
       })
-      const data = await res.json()
-      if (data.error) throw new Error(data.error)
-      setCredentials({ email: form.email, password: data.tempPassword })
+      if (!res.ok) throw new Error('Failed to submit')
       setStep('success')
     } catch (err) {
-      setError(err.message)
-      setStep('error')
+      setError('Something went wrong — please email jlane@responseos.net directly.')
     }
+    setLoading(false)
   }
 
   const inputStyle = {
@@ -41,16 +62,22 @@ export default function Demo() {
     border: '1px solid rgba(139,92,246,0.25)',
     background: 'rgba(20,10,45,0.7)', color: '#F0EEFF',
     fontSize: 15, fontFamily: 'Inter, sans-serif', outline: 'none',
-    transition: 'all .15s', backdropFilter: 'blur(8px)',
+    transition: 'all .15s',
+  }
+
+  const labelStyle = {
+    fontSize: 12, fontWeight: 600, color: '#C4B5FD',
+    marginBottom: 6, display: 'block',
+    letterSpacing: '.04em', textTransform: 'uppercase'
   }
 
   const FEATURES = [
-    { icon: ShieldCheck, label: 'Pre-loaded certifications' },
-    { icon: CheckSquare, label: 'Sample tasks & alerts'     },
-    { icon: Bot,         label: 'AI compliance assistant'   },
-    { icon: FolderLock,  label: 'Document vault'            },
-    { icon: ScrollText,  label: 'Full audit log'            },
-    { icon: Bell,        label: 'Weekly risk reports'       },
+    { icon: ShieldCheck, label: 'Live certification tracking' },
+    { icon: CheckSquare, label: 'Task & inspection management' },
+    { icon: Bot,         label: 'AI compliance assistant'    },
+    { icon: Bell,        label: 'Automated alert engine'     },
+    { icon: ScrollText,  label: 'Immutable audit log'        },
+    { icon: Calendar,    label: 'Guided 1-on-1 demo call'   },
   ]
 
   return (
@@ -103,7 +130,7 @@ export default function Demo() {
       </nav>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', position: 'relative', zIndex: 1 }}>
-        <div style={{ width: '100%', maxWidth: 520 }}>
+        <div style={{ width: '100%', maxWidth: 580 }}>
 
           {step === 'form' && (
             <>
@@ -116,13 +143,13 @@ export default function Demo() {
                   fontSize: 12, fontWeight: 600, letterSpacing: '.04em',
                   marginBottom: 20, border: '1px solid rgba(139,92,246,0.3)'
                 }}>
-                  ◆ Free 14-day demo · No credit card
+                  ◆ Exclusive demo · Guided by our team
                 </div>
                 <h1 style={{ fontSize: 38, fontWeight: 800, color: '#F0EEFF', letterSpacing: '-.02em', marginBottom: 12 }}>
-                  Try ResponseOS free
+                  Request a demo
                 </h1>
-                <p style={{ fontSize: 16, color: '#9B8ABB', lineHeight: 1.7, maxWidth: 420, margin: '0 auto' }}>
-                  Get instant access to a fully loaded demo with real compliance data, AI assistant, and automated alerts.
+                <p style={{ fontSize: 16, color: '#9B8ABB', lineHeight: 1.7, maxWidth: 440, margin: '0 auto' }}>
+                  We'll personally walk you through ResponseOS on a live call — tailored to your team, industry, and compliance needs.
                 </p>
               </div>
 
@@ -133,7 +160,7 @@ export default function Demo() {
                 backdropFilter: 'blur(12px)'
               }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14 }}>
-                  What's included
+                  What you'll see on the call
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   {FEATURES.map(({ icon: Icon, label }) => (
@@ -164,143 +191,155 @@ export default function Demo() {
                   background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.6), transparent)'
                 }} />
 
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label style={labelStyle}>Full name *</label>
+                      <input type="text" value={form.full_name} onChange={e => set('full_name', e.target.value)}
+                        placeholder="Jane Smith" required style={inputStyle}
+                        onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.6)'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)' }}
+                        onBlur={e => { e.target.style.borderColor = 'rgba(139,92,246,0.25)'; e.target.style.boxShadow = 'none' }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Work email *</label>
+                      <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
+                        placeholder="jane@company.com" required style={inputStyle}
+                        onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.6)'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)' }}
+                        onBlur={e => { e.target.style.borderColor = 'rgba(139,92,246,0.25)'; e.target.style.boxShadow = 'none' }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label style={labelStyle}>Company name *</label>
+                      <input type="text" value={form.company} onChange={e => set('company', e.target.value)}
+                        placeholder="Acme Energy Co." required style={inputStyle}
+                        onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.6)'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)' }}
+                        onBlur={e => { e.target.style.borderColor = 'rgba(139,92,246,0.25)'; e.target.style.boxShadow = 'none' }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Industry</label>
+                      <select value={form.industry} onChange={e => set('industry', e.target.value)} style={inputStyle}>
+                        <option value="">Select industry...</option>
+                        <option>Energy & Utilities</option>
+                        <option>Oil & Gas</option>
+                        <option>Healthcare</option>
+                        <option>Manufacturing</option>
+                        <option>Construction</option>
+                        <option>Logistics & Transportation</option>
+                        <option>Government & Public Sector</option>
+                        <option>Financial Services</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label style={labelStyle}>Team size</label>
+                      <select value={form.team_size} onChange={e => set('team_size', e.target.value)} style={inputStyle}>
+                        <option value="">Select size...</option>
+                        <option>1–10 employees</option>
+                        <option>11–50 employees</option>
+                        <option>51–200 employees</option>
+                        <option>201–500 employees</option>
+                        <option>500+ employees</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Timezone</label>
+                      <select value={form.timezone} onChange={e => set('timezone', e.target.value)} style={inputStyle}>
+                        <option value="">Select timezone...</option>
+                        <option>Eastern (ET)</option>
+                        <option>Central (CT)</option>
+                        <option>Mountain (MT)</option>
+                        <option>Pacific (PT)</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#C4B5FD', marginBottom: 6, display: 'block', letterSpacing: '.04em', textTransform: 'uppercase' }}>
-                      Full name *
-                    </label>
-                    <input type="text" value={form.full_name} onChange={e => set('full_name', e.target.value)}
-                      placeholder="Jane Smith" required style={inputStyle}
+                    <label style={labelStyle}>Compliance needs</label>
+                    <input type="text" value={form.compliance_needs} onChange={e => set('compliance_needs', e.target.value)}
+                      placeholder="e.g. FERC, NERC CIP, OSHA, ISO 27001..." style={inputStyle}
                       onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.6)'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)' }}
                       onBlur={e => { e.target.style.borderColor = 'rgba(139,92,246,0.25)'; e.target.style.boxShadow = 'none' }} />
                   </div>
 
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#C4B5FD', marginBottom: 6, display: 'block', letterSpacing: '.04em', textTransform: 'uppercase' }}>
-                      Work email *
-                    </label>
-                    <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
-                      placeholder="jane@company.com" required style={inputStyle}
+                    <label style={labelStyle}>Availability for a call</label>
+                    <input type="text" value={form.availability} onChange={e => set('availability', e.target.value)}
+                      placeholder="e.g. Weekdays 9am–5pm CT, or specific dates..." style={inputStyle}
                       onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.6)'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)' }}
                       onBlur={e => { e.target.style.borderColor = 'rgba(139,92,246,0.25)'; e.target.style.boxShadow = 'none' }} />
                   </div>
 
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#C4B5FD', marginBottom: 6, display: 'block', letterSpacing: '.04em', textTransform: 'uppercase' }}>
-                      Company name
-                    </label>
-                    <input type="text" value={form.company} onChange={e => set('company', e.target.value)}
-                      placeholder="Acme Energy Co." style={inputStyle}
-                      onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.6)'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)' }}
-                      onBlur={e => { e.target.style.borderColor = 'rgba(139,92,246,0.25)'; e.target.style.boxShadow = 'none' }} />
-                  </div>
+                  {error && (
+                    <div style={{
+                      background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
+                      borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#FCA5A5'
+                    }}>{error}</div>
+                  )}
 
-                  <button type="submit" style={{
-                    width: '100%', padding: '15px',
-                    background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
-                    color: '#fff', border: 'none', borderRadius: '12px',
-                    fontSize: 15, fontWeight: 700, cursor: 'pointer',
-                    fontFamily: 'Inter, sans-serif', marginTop: 6,
-                    boxShadow: '0 0 24px rgba(124,58,237,0.4)'
-                  }}>
-                    Start my free demo →
+                  <button type="submit" disabled={loading || !form.full_name || !form.email || !form.company}
+                    style={{
+                      width: '100%', padding: '15px',
+                      background: loading ? 'rgba(124,58,237,0.5)' : 'linear-gradient(135deg, #7C3AED, #5B21B6)',
+                      color: '#fff', border: 'none', borderRadius: '12px',
+                      fontSize: 15, fontWeight: 700,
+                      cursor: loading || !form.full_name || !form.email || !form.company ? 'not-allowed' : 'pointer',
+                      fontFamily: 'Inter, sans-serif', marginTop: 4,
+                      boxShadow: '0 0 24px rgba(124,58,237,0.4)',
+                      opacity: !form.full_name || !form.email || !form.company ? 0.5 : 1
+                    }}>
+                    {loading ? 'Submitting...' : 'Request my demo →'}
                   </button>
 
-                  <div style={{ fontSize: 12, color: '#6060AA', textAlign: 'center', marginTop: 4 }}>
-                    Free for 14 days · No credit card · Limited to 2 demos per email
+                  <div style={{ fontSize: 12, color: '#6060AA', textAlign: 'center' }}>
+                    We'll reach out within 24 hours to schedule your call.
                   </div>
                 </form>
               </div>
             </>
           )}
 
-          {step === 'loading' && (
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: '50%',
-                border: '3px solid rgba(139,92,246,0.3)', borderTopColor: '#8B5CF6',
-                animation: 'spin 0.8s linear infinite', margin: '0 auto 24px'
-              }} />
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#F0EEFF', marginBottom: 8 }}>Setting up your demo...</div>
-              <div style={{ fontSize: 14, color: '#9B8ABB', lineHeight: 1.7 }}>
-                Creating your account and seeding compliance data.<br />This takes about 10 seconds.
-              </div>
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            </div>
-          )}
-
           {step === 'success' && (
-            <div style={{ textAlign: 'center' }}>
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{
                 width: 80, height: 80, borderRadius: '50%',
                 background: 'rgba(52,211,153,0.15)', border: '2px solid rgba(52,211,153,0.4)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 36, margin: '0 auto 24px'
+                fontSize: 36, margin: '0 auto 28px'
               }}>✓</div>
-              <h2 style={{ fontSize: 32, fontWeight: 800, color: '#F0EEFF', marginBottom: 8, letterSpacing: '-.02em' }}>
-                Your demo is ready!
+              <h2 style={{ fontSize: 32, fontWeight: 800, color: '#F0EEFF', marginBottom: 12, letterSpacing: '-.02em' }}>
+                Request received!
               </h2>
-              <p style={{ fontSize: 15, color: '#9B8ABB', marginBottom: 28, lineHeight: 1.7 }}>
-                We sent your login credentials to <strong style={{ color: '#C4B5FD' }}>{credentials?.email}</strong>. Check your inbox then sign in below.
+              <p style={{ fontSize: 16, color: '#9B8ABB', marginBottom: 12, lineHeight: 1.7 }}>
+                Thanks {form.full_name.split(' ')[0]} — we'll review your request and reach out to <strong style={{ color: '#C4B5FD' }}>{form.email}</strong> within 24 hours to schedule your demo call.
+              </p>
+              <p style={{ fontSize: 14, color: '#7060AA', marginBottom: 36, lineHeight: 1.7 }}>
+                In the meantime, feel free to explore our landing page or get a custom quote.
               </p>
 
-              <div style={{
-                background: 'rgba(18,10,42,0.85)', border: '1px solid rgba(139,92,246,0.25)',
-                borderRadius: 14, padding: '20px 24px', marginBottom: 24,
-                backdropFilter: 'blur(12px)', textAlign: 'left'
-              }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>
-                  Your login credentials
-                </div>
-                <div style={{ fontSize: 14, color: '#C4B8E8', marginBottom: 6 }}>
-                  <span style={{ color: '#7060AA' }}>Email:</span> {credentials?.email}
-                </div>
-                <div style={{ fontSize: 14, color: '#C4B8E8', marginBottom: 10 }}>
-                  <span style={{ color: '#7060AA' }}>Password:</span>{' '}
-                  <span style={{ fontFamily: 'monospace', color: '#A78BFA', fontSize: 15 }}>{credentials?.password}</span>
-                </div>
-                <div style={{ fontSize: 11, color: '#6060AA' }}>
-                  You can change your password from your profile after signing in.
-                </div>
-              </div>
-
-              <button onClick={() => navigate('/login')} style={{
-                width: '100%', padding: '15px',
-                background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
-                color: '#fff', border: 'none', borderRadius: '12px',
-                fontSize: 15, fontWeight: 700, cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif',
-                boxShadow: '0 0 24px rgba(124,58,237,0.4)'
-              }}>
-                Sign in to your demo →
-              </button>
-            </div>
-          )}
-
-          {step === 'error' && (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                width: 80, height: 80, borderRadius: '50%',
-                background: 'rgba(248,113,113,0.15)', border: '2px solid rgba(248,113,113,0.4)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 36, margin: '0 auto 24px'
-              }}>✕</div>
-              <h2 style={{ fontSize: 28, fontWeight: 800, color: '#F0EEFF', marginBottom: 8 }}>
-                Something went wrong
-              </h2>
-              <p style={{ fontSize: 15, color: '#FCA5A5', marginBottom: 28, lineHeight: 1.6 }}>{error}</p>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button onClick={() => { setStep('form'); setError(null) }} style={{
-                  padding: '12px 24px', background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
+                <button onClick={() => navigate('/home')} style={{
+                  padding: '12px 28px', background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
                   color: '#fff', border: 'none', borderRadius: '10px',
-                  fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif'
-                }}>Try again</button>
+                  fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                  boxShadow: '0 0 16px rgba(124,58,237,0.4)'
+                }}>Back to home</button>
                 <button onClick={() => navigate('/quote')} style={{
                   padding: '12px 24px', background: 'transparent',
                   color: '#9B8ABB', border: '1px solid rgba(139,92,246,0.2)',
                   borderRadius: '10px', fontSize: 14, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'Inter, sans-serif'
-                }}>Get a quote instead</button>
+                }}>Get a quote</button>
+              </div>
+
+              <div style={{ marginTop: 28, fontSize: 13, color: '#6060AA' }}>
+                Questions? Email us at <a href="mailto:jlane@responseos.net" style={{ color: '#8B5CF6' }}>jlane@responseos.net</a>
               </div>
             </div>
           )}
