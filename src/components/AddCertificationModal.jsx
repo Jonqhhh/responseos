@@ -19,9 +19,21 @@ export default function AddCertificationModal({ onClose, onSaved }) {
   const [users, setUsers] = useState([])
 
   useState(() => {
-    supabase.from('users').select('id, full_name').eq('is_active', true).order('full_name').then(({ data }) => {
+    async function loadUsers() {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) return
+      const { data: profile } = await supabase
+        .from('users').select('is_demo').eq('id', authUser.id).single()
+      const isDemo = profile?.is_demo === true
+      const { data } = await supabase
+        .from('users')
+        .select('id, full_name')
+        .eq('is_active', true)
+        .eq('is_demo', isDemo)
+        .order('full_name')
       setUsers(data || [])
-    })
+    }
+    loadUsers()
   }, [])
 
   function set(field, value) {
@@ -32,23 +44,14 @@ export default function AddCertificationModal({ onClose, onSaved }) {
     const file = e.target.files[0]
     if (!file) return
     if (file.size > 10 * 1024 * 1024) { setError('File must be under 10MB.'); return }
-
     setUploading(true)
     setError(null)
-
     const ext = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-
     const { error: uploadError } = await supabase.storage
-      .from('certifications')
-      .upload(fileName, file, { upsert: true })
-
+      .from('certifications').upload(fileName, file, { upsert: true })
     if (uploadError) { setError(uploadError.message); setUploading(false); return }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('certifications')
-      .getPublicUrl(fileName)
-
+    const { data: { publicUrl } } = supabase.storage.from('certifications').getPublicUrl(fileName)
     setDocUrl(publicUrl)
     setDocName(file.name)
     setUploading(false)
@@ -62,11 +65,16 @@ export default function AddCertificationModal({ onClose, onSaved }) {
     setLoading(true)
     setError(null)
 
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const { data: profile } = await supabase
+      .from('users').select('is_demo').eq('id', authUser.id).single()
+    const isDemo = profile?.is_demo === true
+
     const { error } = await supabase.from('certifications').insert({
       ...form,
-      doc_url: docUrl
+      doc_url: docUrl,
+      is_demo: isDemo
     })
-
     if (error) { setError(error.message); setLoading(false); return }
 
     await supabase.from('audit_logs').insert({
@@ -82,11 +90,11 @@ export default function AddCertificationModal({ onClose, onSaved }) {
 
   const inputStyle = {
     width: '100%', padding: '9px 12px',
-    borderRadius: 6, border: '1px solid #E4E6EF',
-    background: '#fff', color: '#0F1117',
+    borderRadius: 6, border: '1px solid rgba(139,92,246,0.25)',
+    background: 'rgba(20,10,45,0.6)', color: '#F0EEFF',
     fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none'
   }
-  const labelStyle = { fontSize: 12, color: '#6B7280', marginBottom: 5, display: 'block', fontWeight: 600 }
+  const labelStyle = { fontSize: 12, color: '#C4B5FD', marginBottom: 5, display: 'block', fontWeight: 600 }
 
   return (
     <Modal title="Add certification" onClose={onClose}>
@@ -136,47 +144,47 @@ export default function AddCertificationModal({ onClose, onSaved }) {
         <div>
           <label style={labelStyle}>Attach certificate document</label>
           <div style={{
-            border: '2px dashed #E4E6EF', borderRadius: 8, padding: '16px',
-            textAlign: 'center', background: '#F8F9FC', transition: 'all .12s'
+            border: '2px dashed rgba(139,92,246,0.3)', borderRadius: 8, padding: '16px',
+            textAlign: 'center', background: 'rgba(20,10,45,0.4)', transition: 'all .12s'
           }}
-            onMouseOver={e => e.currentTarget.style.borderColor = '#6B4EFF'}
-            onMouseOut={e => e.currentTarget.style.borderColor = '#E4E6EF'}
+            onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(139,92,246,0.6)'}
+            onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(139,92,246,0.3)'}
           >
             {docUrl ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
-                <div style={{ width: 32, height: 32, borderRadius: 6, background: '#EEF0FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>📄</div>
+                <div style={{ width: 32, height: 32, borderRadius: 6, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>📄</div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#0F1117' }}>{docName}</div>
-                  <div style={{ fontSize: 11, color: '#059669', fontWeight: 500 }}>✓ Uploaded successfully</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#F0EEFF' }}>{docName}</div>
+                  <div style={{ fontSize: 11, color: '#34D399', fontWeight: 500 }}>✓ Uploaded successfully</div>
                 </div>
                 <button onClick={() => { setDocUrl(null); setDocName(null) }}
-                  style={{ marginLeft: 8, padding: '3px 8px', borderRadius: 4, border: '1px solid #FECACA', background: '#FEF2F2', color: '#DC2626', fontSize: 11, cursor: 'pointer' }}>
+                  style={{ marginLeft: 8, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: '#F87171', fontSize: 11, cursor: 'pointer' }}>
                   Remove
                 </button>
               </div>
             ) : (
               <>
                 <div style={{ fontSize: 24, marginBottom: 8 }}>📎</div>
-                <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 8 }}>
+                <div style={{ fontSize: 13, color: '#9B8ABB', marginBottom: 8 }}>
                   {uploading ? 'Uploading...' : 'Drop your certificate here or click to browse'}
                 </div>
                 <label style={{
-                  padding: '7px 16px', background: '#6B4EFF', color: '#fff',
-                  borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  padding: '7px 16px', background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
+                  color: '#fff', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   opacity: uploading ? 0.6 : 1
                 }}>
                   {uploading ? 'Uploading...' : 'Browse files'}
                   <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={handleFileUpload}
                     style={{ display: 'none' }} disabled={uploading} />
                 </label>
-                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>PDF, JPG, PNG, DOC — max 10MB</div>
+                <div style={{ fontSize: 11, color: '#6060AA', marginTop: 8 }}>PDF, JPG, PNG, DOC — max 10MB</div>
               </>
             )}
           </div>
         </div>
 
         {error && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 6, padding: '10px 12px', fontSize: 13, color: '#DC2626' }}>
+          <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 6, padding: '10px 12px', fontSize: 13, color: '#FCA5A5' }}>
             {error}
           </div>
         )}

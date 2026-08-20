@@ -15,8 +15,20 @@ export default function AssignTaskModal({ onClose, onSaved, currentUser }) {
   })
 
   useEffect(() => {
-    supabase.from('users').select('id, full_name').order('full_name')
-      .then(({ data }) => setUsers(data || []))
+    async function loadUsers() {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) return
+      const { data: profile } = await supabase
+        .from('users').select('is_demo').eq('id', authUser.id).single()
+      const isDemo = profile?.is_demo === true
+      const { data } = await supabase
+        .from('users')
+        .select('id, full_name')
+        .eq('is_demo', isDemo)
+        .order('full_name')
+      setUsers(data || [])
+    }
+    loadUsers()
   }, [])
 
   function set(field, value) {
@@ -31,17 +43,19 @@ export default function AssignTaskModal({ onClose, onSaved, currentUser }) {
     setLoading(true)
     setError(null)
 
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const { data: profile } = await supabase
+      .from('users').select('is_demo').eq('id', authUser.id).single()
+    const isDemo = profile?.is_demo === true
+
     const { error } = await supabase.from('tasks').insert({
       ...form,
       assigned_by: currentUser?.id || null,
-      status: 'scheduled'
+      status: 'scheduled',
+      is_demo: isDemo
     })
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
-    }
+    if (error) { setError(error.message); setLoading(false); return }
 
     await supabase.from('audit_logs').insert({
       actor_id: currentUser?.id || null,
@@ -57,13 +71,13 @@ export default function AssignTaskModal({ onClose, onSaved, currentUser }) {
 
   const inputStyle = {
     width: '100%', padding: '9px 12px',
-    borderRadius: 6, border: '0.5px solid var(--border2)',
-    background: 'var(--surface2)', color: 'var(--text)',
-    fontSize: 13, fontFamily: 'var(--font)', outline: 'none'
+    borderRadius: 6, border: '1px solid rgba(139,92,246,0.25)',
+    background: 'rgba(20,10,45,0.6)', color: '#F0EEFF',
+    fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none'
   }
 
   const labelStyle = {
-    fontSize: 12, color: 'var(--text2)', marginBottom: 5, display: 'block'
+    fontSize: 12, color: '#C4B5FD', marginBottom: 5, display: 'block', fontWeight: 600
   }
 
   return (
@@ -71,20 +85,16 @@ export default function AssignTaskModal({ onClose, onSaved, currentUser }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
           <label style={labelStyle}>Assign to *</label>
-          <select value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}
-            style={inputStyle}>
+          <select value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)} style={inputStyle}>
             <option value="">Select employee...</option>
-            {users.map(u => (
-              <option key={u.id} value={u.id}>{u.full_name}</option>
-            ))}
+            {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
           </select>
         </div>
 
         <div>
           <label style={labelStyle}>Task title *</label>
           <input type="text" placeholder="e.g. OSHA safety inspection"
-            value={form.title} onChange={e => set('title', e.target.value)}
-            style={inputStyle} />
+            value={form.title} onChange={e => set('title', e.target.value)} style={inputStyle} />
         </div>
 
         <div>
@@ -97,8 +107,7 @@ export default function AssignTaskModal({ onClose, onSaved, currentUser }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <label style={labelStyle}>Task type</label>
-            <select value={form.type} onChange={e => set('type', e.target.value)}
-              style={inputStyle}>
+            <select value={form.type} onChange={e => set('type', e.target.value)} style={inputStyle}>
               <option value="inspection">Inspection</option>
               <option value="checklist">Checklist</option>
               <option value="log">Log</option>
@@ -109,14 +118,13 @@ export default function AssignTaskModal({ onClose, onSaved, currentUser }) {
           <div>
             <label style={labelStyle}>Due date *</label>
             <input type="date" value={form.due_date}
-              onChange={e => set('due_date', e.target.value)}
-              style={inputStyle} />
+              onChange={e => set('due_date', e.target.value)} style={inputStyle} />
           </div>
         </div>
 
         {error && (
           <div style={{
-            background: 'var(--red-dim)', border: '0.5px solid var(--red)',
+            background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
             borderRadius: 6, padding: '10px 12px', fontSize: 13, color: '#FCA5A5'
           }}>{error}</div>
         )}

@@ -8,17 +8,22 @@ import EditUserModal from '../components/EditUserModal'
 import Toast from '../components/Toast'
 
 async function getUsers() {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return []
+  const { data: profile } = await supabase
+    .from('users').select('is_demo').eq('id', authUser.id).single()
+  const isDemo = profile?.is_demo === true
   const { data, error } = await supabase
-    .from('users').select('*').order('full_name')
+    .from('users').select('*').eq('is_demo', isDemo).order('full_name')
   if (error) throw error
   return data
 }
 
 const roleConfig = {
-  admin:      { color: '#6B4EFF', bg: '#EEF0FF', border: '#C7C0FF', label: 'Admin' },
-  supervisor: { color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', label: 'Supervisor' },
-  employee:   { color: '#6B7280', bg: '#F3F4F8', border: '#E4E6EF', label: 'Employee' },
-  auditor:    { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', label: 'Auditor' },
+  admin:      { color: '#8B5CF6', bg: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.3)', label: 'Admin' },
+  supervisor: { color: '#34D399', bg: 'rgba(52,211,153,0.15)', border: 'rgba(52,211,153,0.3)', label: 'Supervisor' },
+  employee:   { color: '#9B8ABB', bg: 'rgba(155,138,187,0.15)', border: 'rgba(155,138,187,0.3)', label: 'Employee' },
+  auditor:    { color: '#FBBF24', bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.3)', label: 'Auditor' },
 }
 
 export default function Users() {
@@ -38,17 +43,17 @@ export default function Users() {
     setToast({ message, type, id: Date.now() })
   }
 
+  const cardStyle = {
+    background: 'rgba(18,10,42,0.75)',
+    border: '1px solid rgba(139,92,246,0.18)',
+    borderRadius: 14, padding: 0, overflow: 'hidden',
+    backdropFilter: 'blur(12px)'
+  }
+
   return (
     <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {toast && (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast key={toast.id} message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {showAdd && (
         <AddUserModal
@@ -92,7 +97,7 @@ export default function Users() {
               </div>
               <div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: cfg.color }}>{count}</div>
-                <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{cfg.label}</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 500 }}>{cfg.label}</div>
               </div>
             </div>
           )
@@ -100,13 +105,14 @@ export default function Users() {
       </div>
 
       {/* Active users table */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div style={cardStyle}>
         <div style={{
-          padding: '14px 20px', borderBottom: '1px solid #E4E6EF',
-          background: '#F8F9FC', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+          padding: '14px 20px', borderBottom: '1px solid rgba(139,92,246,0.15)',
+          background: 'rgba(30,15,60,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
         }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#0F1117' }}>Active users</span>
-          <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{active.length} members</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Active users</span>
+          <span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 500 }}>{active.length} members</span>
         </div>
         <table className="data-table">
           <thead>
@@ -114,7 +120,7 @@ export default function Users() {
           </thead>
           <tbody>
             {active.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', color: '#9CA3AF', padding: 32 }}>No active users.</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text3)', padding: 32 }}>No active users.</td></tr>
             )}
             {active.map(u => {
               const cfg = roleConfig[u.role] || roleConfig.employee
@@ -123,27 +129,29 @@ export default function Users() {
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{
-                        width: 32, height: 32, borderRadius: '50%',
-                        background: cfg.bg, color: cfg.color,
+                        width: 32, height: 32, borderRadius: 8,
+                        background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
+                        color: '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11, fontWeight: 700, flexShrink: 0, border: `1px solid ${cfg.border}`
+                        fontSize: 11, fontWeight: 700, flexShrink: 0,
+                        boxShadow: '0 0 8px rgba(124,58,237,0.4)'
                       }}>
                         {u.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                       </div>
-                      <span style={{ fontWeight: 600 }}>{u.full_name}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--text)' }}>{u.full_name}</span>
                     </div>
                   </td>
-                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: '#6B7280' }}>{u.email}</td>
+                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text2)' }}>{u.email}</td>
                   <td>
                     <span style={{
                       padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700,
                       background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`
                     }}>{u.role}</span>
                   </td>
-                  <td style={{ color: '#6B7280', fontSize: 13 }}>{u.department || '—'}</td>
+                  <td style={{ color: 'var(--text2)', fontSize: 13 }}>{u.department || '—'}</td>
                   <td>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#059669', fontWeight: 600 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#059669', display: 'inline-block' }} />
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#34D399', fontWeight: 600 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399', display: 'inline-block', boxShadow: '0 0 6px #34D399' }} />
                       Active
                     </span>
                   </td>
@@ -151,12 +159,13 @@ export default function Users() {
                     <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(u) }}
                       style={{
                         padding: '5px 12px', borderRadius: 6,
-                        border: '1px solid #E4E6EF', background: '#fff',
-                        color: '#6B7280', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                        border: '1px solid rgba(139,92,246,0.25)',
+                        background: 'rgba(139,92,246,0.08)',
+                        color: '#C4B5FD', fontSize: 12, fontWeight: 500, cursor: 'pointer',
                         transition: 'all .12s'
                       }}
-                      onMouseOver={e => { e.currentTarget.style.borderColor = '#6B4EFF'; e.currentTarget.style.color = '#6B4EFF' }}
-                      onMouseOut={e => { e.currentTarget.style.borderColor = '#E4E6EF'; e.currentTarget.style.color = '#6B7280' }}
+                      onMouseOver={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.2)' }}
+                      onMouseOut={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.08)' }}
                     >
                       Edit
                     </button>
@@ -170,7 +179,7 @@ export default function Users() {
 
       {/* Mobile cards */}
       <div className="mobile-card-list">
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
           Active users ({active.length})
         </div>
         {active.map(u => {
@@ -180,14 +189,15 @@ export default function Users() {
               <div className="mobile-card-row">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{
-                    width: 32, height: 32, borderRadius: '50%',
-                    background: cfg.bg, color: cfg.color,
+                    width: 32, height: 32, borderRadius: 8,
+                    background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
+                    color: '#fff',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 700, border: `1px solid ${cfg.border}`
+                    fontSize: 11, fontWeight: 700
                   }}>
                     {u.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: '#0F1117' }}>{u.full_name}</span>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{u.full_name}</span>
                 </div>
                 <span style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
                   {u.role}
@@ -212,14 +222,14 @@ export default function Users() {
 
         {inactive.length > 0 && (
           <>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: 8, marginBottom: 4 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: 8, marginBottom: 4 }}>
               Inactive ({inactive.length})
             </div>
             {inactive.map(u => (
               <div key={u.id} className="mobile-card" style={{ opacity: 0.6 }}>
                 <div className="mobile-card-row">
-                  <span style={{ fontSize: 15, fontWeight: 600, color: '#0F1117' }}>{u.full_name}</span>
-                  <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>INACTIVE</span>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{u.full_name}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>INACTIVE</span>
                 </div>
                 <div style={{ marginTop: 10 }}>
                   <button type="button" onClick={() => setEditing(u)} className="btn btn-ghost" style={{ fontSize: 12, padding: '5px 12px' }}>
@@ -234,9 +244,9 @@ export default function Users() {
 
       {/* Inactive users table */}
       {inactive.length > 0 && (
-        <div className="card" style={{ padding: 0, overflow: 'hidden', opacity: 0.65 }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid #E4E6EF', background: '#F8F9FC' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#6B7280' }}>Inactive users ({inactive.length})</span>
+        <div style={{ ...cardStyle, opacity: 0.65 }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(139,92,246,0.15)', background: 'rgba(30,15,60,0.5)' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)' }}>Inactive users ({inactive.length})</span>
           </div>
           <table className="data-table">
             <thead>
@@ -247,17 +257,17 @@ export default function Users() {
                 const cfg = roleConfig[u.role] || roleConfig.employee
                 return (
                   <tr key={u.id}>
-                    <td style={{ fontWeight: 600 }}>{u.full_name}</td>
-                    <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: '#6B7280' }}>{u.email}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text)' }}>{u.full_name}</td>
+                    <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text2)' }}>{u.email}</td>
                     <td>
                       <span style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: cfg.bg, color: cfg.color }}>
                         {u.role}
                       </span>
                     </td>
-                    <td style={{ color: '#6B7280' }}>{u.department || '—'}</td>
+                    <td style={{ color: 'var(--text2)' }}>{u.department || '—'}</td>
                     <td>
                       <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(u) }}
-                        style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #E4E6EF', background: '#fff', color: '#6B7280', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+                        style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid rgba(139,92,246,0.2)', background: 'rgba(139,92,246,0.08)', color: '#C4B5FD', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
                         Edit
                       </button>
                     </td>
