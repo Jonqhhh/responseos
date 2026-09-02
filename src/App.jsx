@@ -128,8 +128,8 @@ function MoonrockSidebar({ children }) {
       width: 240, flexShrink: 0, zIndex: 10,
       display: 'flex', flexDirection: 'column',
       padding: '0 0 20px',
-      borderRight: '1px solid rgba(139,92,246,0.2)',
-      boxShadow: '4px 0 30px rgba(0,0,0,0.5)',
+      borderRight: '1px solid rgba(139,92,246,0.15)',
+      boxShadow: '4px 0 24px rgba(139,92,246,0.08)',
       position: 'relative', overflow: 'hidden'
     }}>
       <canvas ref={canvasRef} style={{
@@ -140,218 +140,6 @@ function MoonrockSidebar({ children }) {
         {children}
       </div>
     </aside>
-  )
-}
-
-function GalaxyBackground() {
-  const canvasRef = useRef(null)
-
-  useEffect(() => {
-    const el = canvasRef.current
-    if (!el) return
-    const ctx = el.getContext('2d')
-
-    function resize() {
-      el.width = window.innerWidth
-      el.height = window.innerHeight
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    const stars = Array.from({ length: 320 }, () => ({
-      x: Math.random(), y: Math.random(),
-      r: Math.random() * 1.6 + 0.3,
-      o: Math.random() * 0.8 + 0.2,
-      twinkle: Math.random() * Math.PI * 2,
-      speed: Math.random() * 0.02 + 0.005,
-      type: Math.floor(Math.random() * 3)
-    }))
-
-    let comet = null
-    let cometCountdown = 45 * 60
-
-    function spawnComet(w, h) {
-      const fromTop = Math.random() > 0.5
-      return {
-        x: fromTop ? Math.random() * w * 0.6 : -30,
-        y: fromTop ? -30 : Math.random() * h * 0.4,
-        vx: 7 + Math.random() * 5,
-        vy: 4 + Math.random() * 4,
-        size: Math.random() * 2.5 + 1.5,
-        tail: [], alpha: 1
-      }
-    }
-
-    function drawComet(ctx, c) {
-      c.tail.push({ x: c.x, y: c.y })
-      if (c.tail.length > 40) c.tail.shift()
-      for (let i = 0; i < c.tail.length; i++) {
-        const t = i / c.tail.length
-        const alpha = t * c.alpha * 0.8
-        const r = t * c.size * 1.5
-        const g = ctx.createRadialGradient(c.tail[i].x, c.tail[i].y, 0, c.tail[i].x, c.tail[i].y, r + 2)
-        g.addColorStop(0, `rgba(220,200,255,${alpha})`)
-        g.addColorStop(0.4, `rgba(160,120,255,${alpha * 0.5})`)
-        g.addColorStop(1, 'rgba(100,60,255,0)')
-        ctx.fillStyle = g
-        ctx.beginPath()
-        ctx.arc(c.tail[i].x, c.tail[i].y, r + 2, 0, Math.PI * 2)
-        ctx.fill()
-      }
-      const hg = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.size * 4)
-      hg.addColorStop(0, `rgba(255,255,255,${c.alpha})`)
-      hg.addColorStop(0.3, `rgba(220,200,255,${c.alpha * 0.8})`)
-      hg.addColorStop(1, 'rgba(139,92,246,0)')
-      ctx.fillStyle = hg
-      ctx.beginPath()
-      ctx.arc(c.x, c.y, c.size * 4, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.fillStyle = `rgba(255,255,255,${c.alpha})`
-      ctx.beginPath()
-      ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2)
-      ctx.fill()
-    }
-
-    let time = 0
-    let animId
-
-    function draw() {
-      const w = el.width
-      const h = el.height
-      const cx = w * 0.58
-      const cy = h * 0.40
-
-      ctx.clearRect(0, 0, w, h)
-
-      const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 1.1)
-      bg.addColorStop(0, 'rgba(25,10,60,1)')
-      bg.addColorStop(0.25, 'rgba(15,5,40,1)')
-      bg.addColorStop(0.6, 'rgba(8,3,25,1)')
-      bg.addColorStop(1, 'rgba(2,1,10,1)')
-      ctx.fillStyle = bg
-      ctx.fillRect(0, 0, w, h)
-
-      stars.forEach(s => {
-        s.twinkle += s.speed
-        const alpha = s.o * (0.5 + 0.5 * Math.sin(s.twinkle))
-        const x = s.x * w
-        const y = s.y * h
-        const colors = [`rgba(255,255,255,${alpha})`, `rgba(180,200,255,${alpha})`, `rgba(200,160,255,${alpha})`]
-        ctx.fillStyle = colors[s.type]
-        ctx.beginPath()
-        ctx.arc(x, y, s.r, 0, Math.PI * 2)
-        ctx.fill()
-        if (s.r > 1.2) {
-          ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.3})`
-          ctx.lineWidth = 0.4
-          ctx.beginPath()
-          ctx.moveTo(x - s.r * 3, y); ctx.lineTo(x + s.r * 3, y)
-          ctx.moveTo(x, y - s.r * 3); ctx.lineTo(x, y + s.r * 3)
-          ctx.stroke()
-        }
-      })
-
-      const nebulas = [
-        { x: cx * 0.4,  y: cy * 1.4, r: w * 0.4,  c: 'rgba(80,20,160,0.09)' },
-        { x: cx * 1.35, y: cy * 0.4, r: w * 0.35, c: 'rgba(40,10,120,0.08)' },
-        { x: cx * 0.2,  y: cy * 0.3, r: w * 0.25, c: 'rgba(60,15,140,0.06)' },
-        { x: cx * 1.1,  y: cy * 1.6, r: w * 0.3,  c: 'rgba(100,30,180,0.05)' },
-      ]
-      nebulas.forEach(n => {
-        const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r)
-        g.addColorStop(0, n.c); g.addColorStop(1, 'rgba(0,0,0,0)')
-        ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
-      })
-
-      ctx.save()
-      ctx.translate(cx, cy)
-      const og = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.min(w, h) * 0.68)
-      og.addColorStop(0, 'rgba(180,140,255,0.0)')
-      og.addColorStop(0.3, 'rgba(88,28,235,0.07)')
-      og.addColorStop(1, 'rgba(20,5,60,0.0)')
-      ctx.fillStyle = og
-      ctx.beginPath()
-      ctx.arc(0, 0, Math.min(w, h) * 0.68, 0, Math.PI * 2)
-      ctx.fill()
-
-      for (let arm = 0; arm < 2; arm++) {
-        const ao = (arm / 2) * Math.PI * 2
-        for (let i = 0; i < 800; i++) {
-          const t = i / 800
-          const angle = t * Math.PI * 4 + ao + time * 0.003
-          const radius = t * Math.min(w, h) * 0.62
-          const x = Math.cos(angle) * radius
-          const y = Math.sin(angle) * radius * 0.44
-          const spread = radius * 0.20
-          const dx = Math.sin(i * 7.3) * spread * 0.5
-          const dy = Math.cos(i * 5.7) * spread * 0.22
-          const alpha = (1 - t) * 0.13 * (0.5 + 0.5 * Math.sin(t * Math.PI))
-          const size = (1 - t) * 2.2 + 0.3
-          ctx.fillStyle = arm === 0 ? `rgba(150,110,255,${alpha})` : `rgba(110,70,230,${alpha * 0.8})`
-          ctx.beginPath()
-          ctx.arc(x + dx, y + dy, size, 0, Math.PI * 2)
-          ctx.fill()
-        }
-        for (let i = 0; i < 140; i++) {
-          const t = i / 140
-          const angle = t * Math.PI * 4 + ao + time * 0.003
-          const radius = t * Math.min(w, h) * 0.60
-          const x = Math.cos(angle) * radius
-          const y = Math.sin(angle) * radius * 0.44
-          ctx.fillStyle = `rgba(230,210,255,${(1 - t) * 0.4})`
-          ctx.beginPath()
-          ctx.arc(x, y, 0.9, 0, Math.PI * 2)
-          ctx.fill()
-        }
-      }
-      ctx.restore()
-
-      const coreLayers = [
-        { r: 150, c: 'rgba(255,255,255,0.04)' },
-        { r: 90,  c: 'rgba(220,200,255,0.10)' },
-        { r: 45,  c: 'rgba(200,170,255,0.22)' },
-        { r: 20,  c: 'rgba(240,230,255,0.55)' },
-        { r: 7,   c: 'rgba(255,255,255,0.95)' },
-      ]
-      coreLayers.forEach(({ r, c }) => {
-        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
-        g.addColorStop(0, c); g.addColorStop(1, 'rgba(0,0,0,0)')
-        ctx.fillStyle = g
-        ctx.beginPath()
-        ctx.arc(cx, cy, r, 0, Math.PI * 2)
-        ctx.fill()
-      })
-
-      cometCountdown--
-      if (cometCountdown <= 0 && !comet) {
-        comet = spawnComet(w, h)
-        cometCountdown = 45 * 60
-      }
-      if (comet) {
-        drawComet(ctx, comet)
-        comet.x += comet.vx
-        comet.y += comet.vy
-        if (comet.x > w * 0.85 || comet.y > h * 0.85) comet.alpha -= 0.02
-        if (comet.x > w + 50 || comet.y > h + 50 || comet.alpha <= 0) comet = null
-      }
-
-      time += 1
-      animId = requestAnimationFrame(draw)
-    }
-
-    setTimeout(() => { comet = spawnComet(el.width, el.height) }, 5000)
-    draw()
-
-    return () => {
-      cancelAnimationFrame(animId)
-      window.removeEventListener('resize', resize)
-    }
-  }, [])
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
-    </div>
   )
 }
 
@@ -379,15 +167,13 @@ function DemoBanner({ user }) {
   const daysLeft = user.demo_expires_at
     ? Math.max(0, Math.ceil((new Date(user.demo_expires_at) - Date.now()) / (1000 * 60 * 60 * 24)))
     : 14
-
   return (
     <div style={{
-      background: 'linear-gradient(90deg, rgba(124,58,237,0.9), rgba(88,28,235,0.9))',
-      backdropFilter: 'blur(12px)',
+      background: 'linear-gradient(90deg, #7C3AED, #5B21B6)',
       padding: '8px 20px',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       flexShrink: 0, zIndex: 10,
-      borderBottom: '1px solid rgba(139,92,246,0.3)'
+      borderBottom: '1px solid rgba(139,92,246,0.2)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#EDE9FF', fontWeight: 600 }}>
         <span>🚀</span>
@@ -395,11 +181,8 @@ function DemoBanner({ user }) {
       </div>
       <a href="/quote" style={{
         padding: '4px 12px', background: '#fff', color: '#7C3AED',
-        borderRadius: 6, fontSize: 11, fontWeight: 700,
-        textDecoration: 'none'
-      }}>
-        Upgrade →
-      </a>
+        borderRadius: 6, fontSize: 11, fontWeight: 700, textDecoration: 'none'
+      }}>Upgrade →</a>
     </div>
   )
 }
@@ -410,9 +193,7 @@ function AppShell({ user, handleLogout }) {
   const NAV = [...NAV_ALL, ...(isAdminOrAuditor ? NAV_ADMIN : [])]
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', position: 'relative' }}>
-
-      <GalaxyBackground />
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', position: 'relative', background: 'var(--bg)' }}>
 
       {showOnboarding && (
         <OnboardingWizard user={user} onComplete={() => setShowOnboarding(false)} />
@@ -437,10 +218,9 @@ function AppShell({ user, handleLogout }) {
                   marginBottom: 2, textDecoration: 'none',
                   fontSize: 13, fontWeight: isActive ? 700 : 500,
                   color: isActive ? '#3B1FA8' : '#4A3B6A',
-                  background: isActive ? 'linear-gradient(135deg, rgba(237,233,255,0.9), rgba(221,214,254,0.9))' : 'transparent',
-                  boxShadow: isActive ? '0 2px 8px rgba(124,58,237,0.2), inset 0 1px 0 rgba(255,255,255,0.5)' : 'none',
-                  transition: 'all .12s',
-                  backdropFilter: isActive ? 'blur(8px)' : 'none'
+                  background: isActive ? 'linear-gradient(135deg, rgba(237,233,255,0.95), rgba(221,214,254,0.95))' : 'transparent',
+                  boxShadow: isActive ? '0 2px 8px rgba(124,58,237,0.15), inset 0 1px 0 rgba(255,255,255,0.6)' : 'none',
+                  transition: 'all .12s'
                 })}
               >
                 {({ isActive }) => (
@@ -448,12 +228,8 @@ function AppShell({ user, handleLogout }) {
                     <div style={{
                       width: 30, height: 30, borderRadius: '8px', flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: isActive
-                        ? 'linear-gradient(135deg, #7C3AED, #5B21B6)'
-                        : 'rgba(139,92,246,0.14)',
-                      boxShadow: isActive
-                        ? '0 0 12px rgba(124,58,237,0.5), inset 0 1px 0 rgba(255,255,255,0.2)'
-                        : 'inset 0 1px 0 rgba(255,255,255,0.4)',
+                      background: isActive ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : 'rgba(139,92,246,0.12)',
+                      boxShadow: isActive ? '0 0 12px rgba(124,58,237,0.4)' : 'none',
                       transition: 'all .12s'
                     }}>
                       <Icon size={15} color={isActive ? '#fff' : '#7C3AED'} strokeWidth={2} />
@@ -462,8 +238,7 @@ function AppShell({ user, handleLogout }) {
                     {isActive && (
                       <div style={{
                         width: 5, height: 5, borderRadius: '50%',
-                        background: '#7C3AED',
-                        boxShadow: '0 0 6px rgba(124,58,237,0.8)'
+                        background: '#7C3AED', boxShadow: '0 0 6px rgba(124,58,237,0.8)'
                       }} />
                     )}
                   </>
@@ -477,20 +252,17 @@ function AppShell({ user, handleLogout }) {
           <NavLink to="/profile" style={({ isActive }) => ({
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '7px 10px', borderRadius: '10px',
-            background: isActive
-              ? 'linear-gradient(135deg, rgba(237,233,255,0.9), rgba(221,214,254,0.9))'
-              : 'rgba(139,92,246,0.08)',
+            background: isActive ? 'linear-gradient(135deg, rgba(237,233,255,0.95), rgba(221,214,254,0.95))' : 'rgba(139,92,246,0.06)',
             textDecoration: 'none', marginBottom: 8, transition: 'all .12s',
             border: '1px solid rgba(139,92,246,0.15)',
-            boxShadow: isActive ? '0 2px 8px rgba(124,58,237,0.2)' : 'inset 0 1px 0 rgba(255,255,255,0.4)'
+            boxShadow: isActive ? '0 2px 8px rgba(124,58,237,0.15)' : 'none'
           })}>
             <div style={{
               width: 30, height: 30, borderRadius: '8px',
               background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
-              color: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 11, fontWeight: 700, flexShrink: 0,
-              boxShadow: '0 0 10px rgba(124,58,237,0.5)'
+              boxShadow: '0 0 10px rgba(124,58,237,0.4)'
             }}>
               {user.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
             </div>
@@ -505,40 +277,54 @@ function AppShell({ user, handleLogout }) {
           </NavLink>
           <button onClick={handleLogout} style={{
             width: '100%', padding: '8px', borderRadius: '8px',
-            background: 'rgba(139,92,246,0.06)',
-            border: '1px solid rgba(139,92,246,0.2)',
+            background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)',
             color: '#8B7ABB', fontSize: 12, fontWeight: 500,
-            cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all .12s',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)'
-          }}>
-            Sign out
-          </button>
+            cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all .12s'
+          }}>Sign out</button>
         </div>
       </MoonrockSidebar>
 
+      {/* White main content with purple underglow */}
       <main style={{
         flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column',
-        background: 'transparent', position: 'relative', zIndex: 1
+        background: 'var(--bg)', position: 'relative', zIndex: 1
       }}>
+        {/* Purple underglow */}
+        <div style={{
+          position: 'fixed', bottom: 0, left: 240, right: 0, height: '40vh',
+          background: 'radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.08) 0%, transparent 70%)',
+          pointerEvents: 'none', zIndex: 0
+        }} />
+        <div style={{
+          position: 'fixed', top: 0, left: 240, right: 0, height: '30vh',
+          background: 'radial-gradient(ellipse at 70% 0%, rgba(139,92,246,0.05) 0%, transparent 70%)',
+          pointerEvents: 'none', zIndex: 0
+        }} />
+
         <DemoBanner user={user} />
+
+        {/* Top bar */}
         <div style={{
           padding: '12px 20px',
-          borderBottom: '1px solid rgba(139,92,246,0.15)',
-          background: 'rgba(8,6,18,0.75)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
+          borderBottom: '1px solid rgba(139,92,246,0.1)',
+          background: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
           display: 'flex', alignItems: 'center',
           justifyContent: 'flex-end', gap: 10, flexShrink: 0,
-          boxShadow: '0 1px 20px rgba(139,92,246,0.1)'
+          boxShadow: '0 1px 12px rgba(139,92,246,0.07)',
+          position: 'relative', zIndex: 2
         }}>
           <Search />
           <NotificationBell />
         </div>
-        <div style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch' }}>
+
+        <div style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch', position: 'relative', zIndex: 1 }}>
           <AnimatedRoutes />
         </div>
       </main>
 
+      {/* Mobile bottom nav */}
       <nav className="bottom-nav">
         <div className="bottom-nav-inner">
           {NAV_ALL.slice(0, 5).map(n => {
@@ -602,16 +388,19 @@ export default function App() {
   }
 
   if (loading) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#080612', position: 'relative' }}>
-      <GalaxyBackground />
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+    <div style={{
+      height: '100vh', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', background: '#F5F3FF'
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        <img src="/logo.png" alt="ResponseOS" style={{ height: 52, objectFit: 'contain', marginBottom: 4 }} />
         <div style={{
-          width: 40, height: 40, borderRadius: '50%',
-          border: '2px solid rgba(139,92,246,0.3)', borderTopColor: '#8B5CF6',
+          width: 36, height: 36, borderRadius: '50%',
+          border: '3px solid #EDE9FF', borderTopColor: '#7C3AED',
           animation: 'spin 0.8s linear infinite',
-          boxShadow: '0 0 20px rgba(139,92,246,0.4)'
+          boxShadow: '0 0 16px rgba(124,58,237,0.2)'
         }} />
-        <div style={{ fontSize: 13, color: 'rgba(139,92,246,0.7)', fontFamily: 'Inter, sans-serif', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 12, color: '#8B7ABB', fontFamily: 'Inter, sans-serif', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>
           Loading
         </div>
       </div>
