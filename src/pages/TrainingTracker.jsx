@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 import Toast from '../components/Toast'
-import { ClipboardList, Plus, X, ChevronDown, ChevronUp, Users, Clock, Award, Target, AlertTriangle } from 'lucide-react'
+import { ClipboardList, Plus, X, ChevronDown, ChevronUp, Clock, Award, Target, AlertTriangle } from 'lucide-react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const CATEGORIES = [
   { id: 'fire',    label: 'Fire',    icon: '🔥', color: '#DC2626', bg: '#FEF2F2', border: '#FECACA',
@@ -27,10 +29,8 @@ function calcHours(start, end) {
   return Math.max(0, ((eh * 60 + em) - (sh * 60 + sm)) / 60)
 }
 
-function ProgressBar({ value, max, color }) {
+function ProgressBar({ value, max }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0
-  const isLow = pct < 50
-  const isMed = pct >= 50 && pct < 80
   const barColor = pct >= 80 ? '#059669' : pct >= 50 ? '#D97706' : '#DC2626'
   return (
     <div>
@@ -39,7 +39,7 @@ function ProgressBar({ value, max, color }) {
         <span style={{ color: barColor, fontWeight: 700 }}>{pct.toFixed(0)}%</span>
       </div>
       <div style={{ background: '#F3F4F6', borderRadius: 99, height: 6 }}>
-        <div style={{ width: `${pct}%`, height: 6, borderRadius: 99, background: barColor, transition: 'width .4s ease', boxShadow: pct >= 80 ? `0 0 6px ${barColor}40` : 'none' }} />
+        <div style={{ width: `${pct}%`, height: 6, borderRadius: 99, background: barColor, transition: 'width .4s ease' }} />
       </div>
     </div>
   )
@@ -59,7 +59,7 @@ export default function TrainingTracker() {
   const [filter, setFilter] = useState('all')
   const [expandedId, setExpandedId] = useState(null)
   const [deleting, setDeleting] = useState(null)
-  const [activeTab, setActiveTab] = useState('sessions') // sessions | goals | progress
+  const [activeTab, setActiveTab] = useState('sessions')
 
   const [form, setForm] = useState({
     title: '', category: 'fire', topic: '',
@@ -96,17 +96,12 @@ export default function TrainingTracker() {
 
       setSessions(sessRes.data || [])
       setUsers(usersRes.data || [])
-
       const goalsData = goalsRes.data || []
       setGoals(goalsData)
-
-      // Populate goal form
       if (goalsData.length > 0) {
         const gf = { ...goalForm }
         goalsData.forEach(g => {
-          if (gf[g.category]) {
-            gf[g.category] = { daily_hours: g.daily_hours, quarterly_hours: g.quarterly_hours }
-          }
+          if (gf[g.category]) gf[g.category] = { daily_hours: g.daily_hours, quarterly_hours: g.quarterly_hours }
         })
         setGoalForm(gf)
       }
@@ -209,22 +204,18 @@ export default function TrainingTracker() {
     showToast('Training session deleted.', 'error')
   }
 
-  const filtered = filter === 'all' ? sessions : sessions.filter(s => s.category === filter)
-
   // Stats
-  const totalHours = sessions.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
   const now = new Date()
+  const totalHours = sessions.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
   const thisMonth = sessions.filter(s => {
     const d = new Date(s.training_date)
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
   })
   const monthHours = thisMonth.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
-
-  // Quarterly progress (current quarter)
   const qStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)
   const quarterSessions = sessions.filter(s => new Date(s.training_date) >= qStart)
+  const quarterHours = quarterSessions.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
 
-  // Category stats
   const catStats = CATEGORIES.map(cat => {
     const catSess = sessions.filter(s => s.category === cat.id)
     const catHours = catSess.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
@@ -236,8 +227,8 @@ export default function TrainingTracker() {
     const qSess = catSess.filter(s => new Date(s.training_date) >= qStart)
     const qHrs = qSess.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
     const goal = goals.find(g => g.category === cat.id)
-    const dailyGoal = goal?.daily_hours || 1
-    const quarterlyGoal = goal?.quarterly_hours || 8
+    const dailyGoal = parseFloat(goal?.daily_hours || 1)
+    const quarterlyGoal = parseFloat(goal?.quarterly_hours || 8)
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
     const monthGoal = dailyGoal * daysInMonth
     const monthBehind = monthHrs < monthGoal * 0.5
@@ -246,8 +237,88 @@ export default function TrainingTracker() {
   })
 
   const behindCount = catStats.filter(c => c.monthBehind || c.qBehind).length
-
+  const filtered = filter === 'all' ? sessions : sessions.filter(s => s.category === filter)
+  const isAdmin = ['admin', 'supervisor'].includes(user?.role)
   const cat = CATEGORIES.find(c => c.id === form.category)
+
+  function exportPDF() {
+    const doc = new jsPDF()
+
+    // Header bar
+    doc.setFillColor(124, 58, 237)
+    doc.rect(0, 0, 220, 28, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.text('ResponseOS — Training Report', 14, 11)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, 14, 19)
+    doc.text(`Total: ${sessions.length} sessions · ${totalHours.toFixed(1)}h`, 14, 25)
+
+    // Category summary
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Category Summary', 14, 40)
+
+    autoTable(doc, {
+      startY: 44,
+      head: [['Category', 'Sessions', 'Total Hours', 'This Month', 'This Quarter', 'Status']],
+      body: catStats.map(c => [
+        c.label,
+        c.sessCount.toString(),
+        c.catHours.toFixed(1) + 'h',
+        c.monthHrs.toFixed(1) + 'h',
+        c.qHrs.toFixed(1) + 'h',
+        (c.monthBehind || c.qBehind) ? 'Behind' : 'On Track'
+      ]),
+      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+      bodyStyles: { fontSize: 10 },
+      alternateRowStyles: { fillColor: [245, 243, 255] },
+    })
+
+    // Sessions table
+    const y1 = doc.lastAutoTable.finalY + 12
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('All Training Sessions', 14, y1)
+
+    autoTable(doc, {
+      startY: y1 + 4,
+      head: [['Date', 'Title', 'Category', 'Topic', 'Hours', 'Instructor', 'Location', 'Q?']],
+      body: sessions.map(s => {
+        const c = CATEGORIES.find(x => x.id === s.category)
+        return [
+          formatDate(s.training_date),
+          s.title,
+          c?.label || s.category,
+          s.topic,
+          s.duration_hours ? parseFloat(s.duration_hours).toFixed(1) + 'h' : '—',
+          s.instructor?.full_name || '—',
+          s.location || '—',
+          s.is_quarterly ? 'Yes' : 'No'
+        ]
+      }),
+      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+      bodyStyles: { fontSize: 8 },
+      alternateRowStyles: { fillColor: [245, 243, 255] },
+      columnStyles: { 1: { cellWidth: 35 }, 3: { cellWidth: 30 } }
+    })
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(150, 150, 150)
+      doc.text(`ResponseOS Training Report · Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 8)
+      doc.text('responseos.net', doc.internal.pageSize.width - 14, doc.internal.pageSize.height - 8, { align: 'right' })
+    }
+
+    doc.save(`training-report-${new Date().toISOString().split('T')[0]}.pdf`)
+    showToast('Training report exported as PDF.')
+  }
 
   const inputStyle = {
     width: '100%', padding: '9px 12px', borderRadius: 8,
@@ -255,8 +326,6 @@ export default function TrainingTracker() {
     fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none', transition: 'border-color .12s'
   }
   const labelStyle = { fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 5, display: 'block' }
-
-  const isAdmin = ['admin', 'supervisor'].includes(user?.role)
 
   return (
     <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -273,6 +342,10 @@ export default function TrainingTracker() {
                 <Target size={14} strokeWidth={2} /> Set goals
               </button>
             )}
+            <button className="btn btn-ghost" onClick={exportPDF} disabled={sessions.length === 0}
+              style={{ opacity: sessions.length === 0 ? 0.5 : 1 }}>
+              📄 Export PDF
+            </button>
             <button className="btn btn-primary" onClick={() => setShowNew(true)}>
               <Plus size={15} strokeWidth={2} /> Log session
             </button>
@@ -296,15 +369,13 @@ export default function TrainingTracker() {
           { label: 'Total sessions', value: sessions.length, color: '#7C3AED', icon: ClipboardList },
           { label: 'Total hours', value: totalHours.toFixed(1) + 'h', color: '#059669', icon: Clock },
           { label: 'This month', value: monthHours.toFixed(1) + 'h', color: '#D97706', icon: Award },
-          { label: 'This quarter', value: quarterSessions.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0).toFixed(1) + 'h', color: '#2563EB', icon: Target },
+          { label: 'This quarter', value: quarterHours.toFixed(1) + 'h', color: '#2563EB', icon: Target },
         ].map(s => {
           const Icon = s.icon
           return (
             <div key={s.label} className="card">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 9, background: `${s.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon size={16} color={s.color} strokeWidth={2} />
-                </div>
+              <div style={{ width: 36, height: 36, borderRadius: 9, background: `${s.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                <Icon size={16} color={s.color} strokeWidth={2} />
               </div>
               <div style={{ fontSize: 28, fontWeight: 800, color: s.color, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
               <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>{s.label}</div>
@@ -316,8 +387,8 @@ export default function TrainingTracker() {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, background: '#F9FAFB', borderRadius: 10, padding: 4, border: '1px solid #E5E7EB', width: 'fit-content' }}>
         {[
-          { id: 'sessions',  label: 'Sessions' },
-          { id: 'progress',  label: `Progress${behindCount > 0 ? ` (${behindCount} behind)` : ''}` },
+          { id: 'sessions', label: 'Sessions' },
+          { id: 'progress', label: `Progress${behindCount > 0 ? ` (${behindCount} behind)` : ''}` },
         ].map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
             padding: '7px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600,
@@ -338,7 +409,7 @@ export default function TrainingTracker() {
               <div style={{ fontSize: 16, fontWeight: 800, color: '#111827' }}>Training goals</div>
               <button onClick={() => setShowGoals(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}><X size={18} /></button>
             </div>
-            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {CATEGORIES.map(cat => (
                 <div key={cat.id} style={{ background: cat.bg, border: `1px solid ${cat.border}`, borderRadius: 10, padding: '14px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -381,7 +452,7 @@ export default function TrainingTracker() {
                 <span style={{ fontSize: 24 }}>{cat.icon}</span>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>{cat.label}</div>
-                  <div style={{ fontSize: 11, color: '#9CA3AF' }}>{cat.sessCount} sessions total</div>
+                  <div style={{ fontSize: 11, color: '#9CA3AF' }}>{cat.sessCount} sessions total · {cat.catHours.toFixed(1)}h</div>
                 </div>
                 {(cat.monthBehind || cat.qBehind) && (
                   <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: '#FEF3C7', borderRadius: 99, border: '1px solid #FDE68A' }}>
@@ -393,13 +464,13 @@ export default function TrainingTracker() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                    Monthly progress (goal: {cat.monthGoal.toFixed(0)}h)
+                    Monthly (goal: {cat.monthGoal.toFixed(0)}h)
                   </div>
                   <ProgressBar value={cat.monthHrs} max={cat.monthGoal} />
                 </div>
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                    Quarterly progress (goal: {cat.quarterlyGoal}h)
+                    Quarterly (goal: {cat.quarterlyGoal}h)
                   </div>
                   <ProgressBar value={cat.qHrs} max={cat.quarterlyGoal} />
                 </div>
@@ -412,7 +483,6 @@ export default function TrainingTracker() {
       {/* Sessions tab */}
       {activeTab === 'sessions' && (
         <>
-          {/* New session form */}
           {showNew && (
             <div className="card" style={{ borderTop: '3px solid #7C3AED' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -553,7 +623,7 @@ export default function TrainingTracker() {
 
           {/* Filter tabs */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[{ id: 'all', label: 'All sessions', icon: null }, ...CATEGORIES].map(f => (
+            {[{ id: 'all', label: 'All sessions' }, ...CATEGORIES].map(f => (
               <button key={f.id} onClick={() => setFilter(f.id)} style={{
                 padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600,
                 border: `1.5px solid ${filter === f.id ? '#7C3AED' : '#E5E7EB'}`,
@@ -562,7 +632,7 @@ export default function TrainingTracker() {
                 cursor: 'pointer', fontFamily: 'Inter, sans-serif',
                 display: 'flex', alignItems: 'center', gap: 5
               }}>
-                {'icon' in f && f.icon && <span>{f.icon}</span>}
+                {'icon' in f && <span>{f.icon}</span>}
                 {f.label}
               </button>
             ))}
@@ -580,7 +650,7 @@ export default function TrainingTracker() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {filtered.map(s => {
-                const cat = CATEGORIES.find(c => c.id === s.category) || CATEGORIES[0]
+                const c = CATEGORIES.find(x => x.id === s.category) || CATEGORIES[0]
                 const expanded = expandedId === s.id
                 const participantNames = (s.participants || []).map(pid => {
                   const u = users.find(u => u.id === pid)
@@ -588,16 +658,16 @@ export default function TrainingTracker() {
                 }).filter(Boolean)
 
                 return (
-                  <div key={s.id} className="card" style={{ padding: 0, overflow: 'hidden', borderLeft: `4px solid ${cat.color}` }}>
+                  <div key={s.id} className="card" style={{ padding: 0, overflow: 'hidden', borderLeft: `4px solid ${c.color}` }}>
                     <div style={{ padding: '14px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}
                       onClick={() => setExpandedId(expanded ? null : s.id)}>
-                      <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: cat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, border: `1px solid ${cat.border}` }}>
-                        {cat.icon}
+                      <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, border: `1px solid ${c.border}` }}>
+                        {c.icon}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{s.title}</span>
-                          <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: cat.bg, color: cat.color, border: `1px solid ${cat.border}` }}>{cat.label}</span>
+                          <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, border: `1px solid ${c.border}` }}>{c.label}</span>
                           {s.is_quarterly && <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: '#F5F3FF', color: '#7C3AED', border: '1px solid #DDD6FE' }}>Quarterly</span>}
                         </div>
                         <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
