@@ -4,7 +4,7 @@ import { AnimatePresence } from 'framer-motion'
 import { supabase } from './lib/supabase'
 import {
   LayoutDashboard, ShieldCheck, CheckSquare, Bell,
-  Bot, ScrollText, FolderLock, Users, User
+  Bot, ScrollText, FolderLock, Users, User, ClipboardList
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import Certifications from './pages/Certifications'
@@ -15,6 +15,7 @@ import AIAssistant from './pages/AIAssistant'
 import UsersPage from './pages/Users'
 import Profile from './pages/Profile'
 import DocumentVault from './pages/DocumentVault'
+import TrainingTracker from './pages/TrainingTracker'
 import Login from './pages/Login'
 import Landing from './pages/Landing'
 import Quote from './pages/Quote'
@@ -27,17 +28,18 @@ import OnboardingWizard from './components/OnboardingWizard'
 import './index.css'
 
 const NAV_ALL = [
-  { to: '/',        icon: LayoutDashboard, label: 'Dashboard'      },
-  { to: '/certs',   icon: ShieldCheck,     label: 'Certifications' },
-  { to: '/tasks',   icon: CheckSquare,     label: 'Tasks'          },
-  { to: '/alerts',  icon: Bell,            label: 'Alerts'         },
-  { to: '/ai',      icon: Bot,             label: 'AI Assistant'   },
-  { to: '/audit',   icon: ScrollText,      label: 'Audit Log'      },
+  { to: '/',          icon: LayoutDashboard, label: 'Dashboard'      },
+  { to: '/certs',     icon: ShieldCheck,     label: 'Certifications' },
+  { to: '/tasks',     icon: CheckSquare,     label: 'Tasks'          },
+  { to: '/training',  icon: ClipboardList,   label: 'Training'       },
+  { to: '/alerts',    icon: Bell,            label: 'Alerts'         },
+  { to: '/ai',        icon: Bot,             label: 'AI Assistant'   },
+  { to: '/audit',     icon: ScrollText,      label: 'Audit Log'      },
 ]
 
 const NAV_ADMIN = [
-  { to: '/docs',    icon: FolderLock,      label: 'Document Vault' },
-  { to: '/users',   icon: Users,           label: 'Users'          },
+  { to: '/docs',    icon: FolderLock, label: 'Document Vault' },
+  { to: '/users',   icon: Users,      label: 'Users'          },
 ]
 
 function MoonrockSidebar({ children }) {
@@ -148,15 +150,16 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/"        element={<PageTransition><Dashboard /></PageTransition>} />
-        <Route path="/certs"   element={<PageTransition><Certifications /></PageTransition>} />
-        <Route path="/tasks"   element={<PageTransition><Tasks /></PageTransition>} />
-        <Route path="/alerts"  element={<PageTransition><Alerts /></PageTransition>} />
-        <Route path="/ai"      element={<PageTransition><AIAssistant /></PageTransition>} />
-        <Route path="/audit"   element={<PageTransition><AuditLog /></PageTransition>} />
-        <Route path="/docs"    element={<PageTransition><DocumentVault /></PageTransition>} />
-        <Route path="/users"   element={<PageTransition><UsersPage /></PageTransition>} />
-        <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
+        <Route path="/"          element={<PageTransition><Dashboard /></PageTransition>} />
+        <Route path="/certs"     element={<PageTransition><Certifications /></PageTransition>} />
+        <Route path="/tasks"     element={<PageTransition><Tasks /></PageTransition>} />
+        <Route path="/training"  element={<PageTransition><TrainingTracker /></PageTransition>} />
+        <Route path="/alerts"    element={<PageTransition><Alerts /></PageTransition>} />
+        <Route path="/ai"        element={<PageTransition><AIAssistant /></PageTransition>} />
+        <Route path="/audit"     element={<PageTransition><AuditLog /></PageTransition>} />
+        <Route path="/docs"      element={<PageTransition><DocumentVault /></PageTransition>} />
+        <Route path="/users"     element={<PageTransition><UsersPage /></PageTransition>} />
+        <Route path="/profile"   element={<PageTransition><Profile /></PageTransition>} />
       </Routes>
     </AnimatePresence>
   )
@@ -284,7 +287,6 @@ function AppShell({ user, handleLogout }) {
         </div>
       </MoonrockSidebar>
 
-      {/* White main content with purple underglow */}
       <main style={{
         flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column',
         background: 'var(--bg)', position: 'relative', zIndex: 1
@@ -292,18 +294,17 @@ function AppShell({ user, handleLogout }) {
         {/* Purple underglow */}
         <div style={{
           position: 'fixed', bottom: 0, left: 240, right: 0, height: '40vh',
-          background: 'radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.08) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.07) 0%, transparent 70%)',
           pointerEvents: 'none', zIndex: 0
         }} />
         <div style={{
           position: 'fixed', top: 0, left: 240, right: 0, height: '30vh',
-          background: 'radial-gradient(ellipse at 70% 0%, rgba(139,92,246,0.05) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse at 70% 0%, rgba(139,92,246,0.04) 0%, transparent 70%)',
           pointerEvents: 'none', zIndex: 0
         }} />
 
         <DemoBanner user={user} />
 
-        {/* Top bar */}
         <div style={{
           padding: '12px 20px',
           borderBottom: '1px solid rgba(139,92,246,0.1)',
@@ -324,7 +325,6 @@ function AppShell({ user, handleLogout }) {
         </div>
       </main>
 
-      {/* Mobile bottom nav */}
       <nav className="bottom-nav">
         <div className="bottom-nav-inner">
           {NAV_ALL.slice(0, 5).map(n => {
@@ -388,10 +388,7 @@ export default function App() {
   }
 
   if (loading) return (
-    <div style={{
-      height: '100vh', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', background: '#F5F3FF'
-    }}>
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F5F3FF' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <img src="/logo.png" alt="ResponseOS" style={{ height: 52, objectFit: 'contain', marginBottom: 4 }} />
         <div style={{
