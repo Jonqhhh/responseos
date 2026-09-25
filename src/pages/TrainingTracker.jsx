@@ -241,10 +241,135 @@ export default function TrainingTracker() {
   const isAdmin = ['admin', 'supervisor'].includes(user?.role)
   const cat = CATEGORIES.find(c => c.id === form.category)
 
-  function exportPDF() {
+  function exportSessionPDF(s) {
+    const c = CATEGORIES.find(x => x.id === s.category) || CATEGORIES[0]
+    const participantNames = (s.participants || []).map(pid => {
+      const u = users.find(u => u.id === pid)
+      return u?.full_name || ''
+    }).filter(Boolean)
+
     const doc = new jsPDF()
+    const sessionId = s.id?.slice(0, 8).toUpperCase() || 'N/A'
 
     // Header bar
+    doc.setFillColor(124, 58, 237)
+    doc.rect(0, 0, 220, 32, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.text('ResponseOS — Training Record', 14, 12)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Session ID: ROS-${sessionId}`, 14, 20)
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, 14, 27)
+
+    // Session title
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(18)
+    doc.setFont('helvetica', 'bold')
+    doc.text(s.title, 14, 46)
+
+    // Category line
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 100, 100)
+    doc.text(`${c.label} Training${s.is_quarterly ? '  ·  Quarterly Session' : ''}${s.third_party_provider ? `  ·  ${s.third_party_provider}` : ''}`, 14, 54)
+
+    // Divider
+    doc.setDrawColor(220, 214, 254)
+    doc.setLineWidth(0.5)
+    doc.line(14, 58, 196, 58)
+
+    // Session details
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text('Session Details', 14, 68)
+
+    autoTable(doc, {
+      startY: 72,
+      head: [],
+      body: [
+        ['Training Date',  formatDate(s.training_date),   'Category',   c.label],
+        ['Start Time',     s.start_time || '—',           'End Time',   s.end_time || '—'],
+        ['Duration',       s.duration_hours ? `${parseFloat(s.duration_hours).toFixed(1)} hours` : '—', 'Location', s.location || '—'],
+        ['Instructor',     s.instructor?.full_name || '—', 'Logged By',  s.users?.full_name || '—'],
+        ['Topic',          s.topic || '—',                'Type',       s.is_quarterly ? 'Quarterly' : 'Daily'],
+      ],
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 36, fillColor: [245, 243, 255], textColor: [91, 33, 182] },
+        1: { cellWidth: 58 },
+        2: { fontStyle: 'bold', cellWidth: 36, fillColor: [245, 243, 255], textColor: [91, 33, 182] },
+        3: { cellWidth: 58 },
+      },
+      bodyStyles: { fontSize: 10, cellPadding: 5 },
+      theme: 'grid',
+      tableLineColor: [221, 214, 254],
+      tableLineWidth: 0.3,
+    })
+
+    // Participants
+    const y2 = doc.lastAutoTable.finalY + 12
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text(`Participants (${participantNames.length})`, 14, y2)
+
+    if (participantNames.length > 0) {
+      autoTable(doc, {
+        startY: y2 + 4,
+        head: [['#', 'Name', 'Attended']],
+        body: participantNames.map((name, i) => [i + 1, name, '✓']),
+        headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+        bodyStyles: { fontSize: 10 },
+        alternateRowStyles: { fillColor: [245, 243, 255] },
+        columnStyles: { 0: { cellWidth: 14 }, 2: { cellWidth: 24, halign: 'center' } }
+      })
+    } else {
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(150, 150, 150)
+      doc.text('No participants recorded.', 14, y2 + 10)
+    }
+
+    // Notes
+    if (s.notes) {
+      const y3 = (participantNames.length > 0 ? doc.lastAutoTable.finalY : y2 + 16) + 12
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(0, 0, 0)
+      doc.text('Notes', 14, y3)
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(55, 65, 81)
+      const lines = doc.splitTextToSize(s.notes, 172)
+      doc.text(lines, 14, y3 + 8)
+    }
+
+    // Signature lines
+    const sigY = Math.min(doc.internal.pageSize.height - 50, 240)
+    doc.setDrawColor(200, 200, 200)
+    doc.setLineWidth(0.4)
+    doc.line(14, sigY, 90, sigY)
+    doc.line(110, sigY, 186, sigY)
+    doc.setFontSize(9)
+    doc.setTextColor(150, 150, 150)
+    doc.text('Instructor Signature', 14, sigY + 6)
+    doc.text('Supervisor Signature', 110, sigY + 6)
+    doc.text('Date: _______________', 14, sigY + 14)
+    doc.text('Date: _______________', 110, sigY + 14)
+
+    // Footer
+    doc.setFontSize(8)
+    doc.setTextColor(180, 180, 180)
+    doc.text(`ResponseOS Training Record  ·  Session ID: ROS-${sessionId}  ·  responseos.net`, 14, doc.internal.pageSize.height - 8)
+
+    doc.save(`training-record-${s.training_date}-${sessionId}.pdf`)
+    showToast('Session record exported as PDF.')
+  }
+
+  function exportPDF() {
+    const doc = new jsPDF()
     doc.setFillColor(124, 58, 237)
     doc.rect(0, 0, 220, 28, 'F')
     doc.setTextColor(255, 255, 255)
@@ -255,58 +380,34 @@ export default function TrainingTracker() {
     doc.setFont('helvetica', 'normal')
     doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, 14, 19)
     doc.text(`Total: ${sessions.length} sessions · ${totalHours.toFixed(1)}h`, 14, 25)
-
-    // Category summary
     doc.setTextColor(0, 0, 0)
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
     doc.text('Category Summary', 14, 40)
-
     autoTable(doc, {
       startY: 44,
       head: [['Category', 'Sessions', 'Total Hours', 'This Month', 'This Quarter', 'Status']],
-      body: catStats.map(c => [
-        c.label,
-        c.sessCount.toString(),
-        c.catHours.toFixed(1) + 'h',
-        c.monthHrs.toFixed(1) + 'h',
-        c.qHrs.toFixed(1) + 'h',
-        (c.monthBehind || c.qBehind) ? 'Behind' : 'On Track'
-      ]),
+      body: catStats.map(c => [c.label, c.sessCount.toString(), c.catHours.toFixed(1) + 'h', c.monthHrs.toFixed(1) + 'h', c.qHrs.toFixed(1) + 'h', (c.monthBehind || c.qBehind) ? 'Behind' : 'On Track']),
       headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', fontSize: 10 },
       bodyStyles: { fontSize: 10 },
       alternateRowStyles: { fillColor: [245, 243, 255] },
     })
-
-    // Sessions table
     const y1 = doc.lastAutoTable.finalY + 12
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
     doc.text('All Training Sessions', 14, y1)
-
     autoTable(doc, {
       startY: y1 + 4,
       head: [['Date', 'Title', 'Category', 'Topic', 'Hours', 'Instructor', 'Location', 'Q?']],
       body: sessions.map(s => {
         const c = CATEGORIES.find(x => x.id === s.category)
-        return [
-          formatDate(s.training_date),
-          s.title,
-          c?.label || s.category,
-          s.topic,
-          s.duration_hours ? parseFloat(s.duration_hours).toFixed(1) + 'h' : '—',
-          s.instructor?.full_name || '—',
-          s.location || '—',
-          s.is_quarterly ? 'Yes' : 'No'
-        ]
+        return [formatDate(s.training_date), s.title, c?.label || s.category, s.topic, s.duration_hours ? parseFloat(s.duration_hours).toFixed(1) + 'h' : '—', s.instructor?.full_name || '—', s.location || '—', s.is_quarterly ? 'Yes' : 'No']
       }),
       headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', fontSize: 9 },
       bodyStyles: { fontSize: 8 },
       alternateRowStyles: { fillColor: [245, 243, 255] },
       columnStyles: { 1: { cellWidth: 35 }, 3: { cellWidth: 30 } }
     })
-
-    // Footer
     const pageCount = doc.internal.getNumberOfPages()
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i)
@@ -315,7 +416,6 @@ export default function TrainingTracker() {
       doc.text(`ResponseOS Training Report · Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 8)
       doc.text('responseos.net', doc.internal.pageSize.width - 14, doc.internal.pageSize.height - 8, { align: 'right' })
     }
-
     doc.save(`training-report-${new Date().toISOString().split('T')[0]}.pdf`)
     showToast('Training report exported as PDF.')
   }
@@ -353,7 +453,6 @@ export default function TrainingTracker() {
         }
       />
 
-      {/* Behind alert */}
       {behindCount > 0 && (
         <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <AlertTriangle size={16} color="#D97706" strokeWidth={2} />
@@ -363,7 +462,6 @@ export default function TrainingTracker() {
         </div>
       )}
 
-      {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         {[
           { label: 'Total sessions', value: sessions.length, color: '#7C3AED', icon: ClipboardList },
@@ -384,7 +482,6 @@ export default function TrainingTracker() {
         })}
       </div>
 
-      {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, background: '#F9FAFB', borderRadius: 10, padding: 4, border: '1px solid #E5E7EB', width: 'fit-content' }}>
         {[
           { id: 'sessions', label: 'Sessions' },
@@ -401,7 +498,6 @@ export default function TrainingTracker() {
         ))}
       </div>
 
-      {/* Goals modal */}
       {showGoals && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 20px 60px rgba(0,0,0,0.15)', overflow: 'hidden' }}>
@@ -443,7 +539,6 @@ export default function TrainingTracker() {
         </div>
       )}
 
-      {/* Progress tab */}
       {activeTab === 'progress' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           {catStats.map(cat => (
@@ -463,15 +558,11 @@ export default function TrainingTracker() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                    Monthly (goal: {cat.monthGoal.toFixed(0)}h)
-                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>Monthly (goal: {cat.monthGoal.toFixed(0)}h)</div>
                   <ProgressBar value={cat.monthHrs} max={cat.monthGoal} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                    Quarterly (goal: {cat.quarterlyGoal}h)
-                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>Quarterly (goal: {cat.quarterlyGoal}h)</div>
                   <ProgressBar value={cat.qHrs} max={cat.quarterlyGoal} />
                 </div>
               </div>
@@ -480,7 +571,6 @@ export default function TrainingTracker() {
         </div>
       )}
 
-      {/* Sessions tab */}
       {activeTab === 'sessions' && (
         <>
           {showNew && (
@@ -621,7 +711,6 @@ export default function TrainingTracker() {
             </div>
           )}
 
-          {/* Filter tabs */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {[{ id: 'all', label: 'All sessions' }, ...CATEGORIES].map(f => (
               <button key={f.id} onClick={() => setFilter(f.id)} style={{
@@ -638,7 +727,6 @@ export default function TrainingTracker() {
             ))}
           </div>
 
-          {/* Sessions list */}
           {loading ? (
             <div className="card" style={{ textAlign: 'center', color: '#9CA3AF', padding: 40 }}>Loading...</div>
           ) : filtered.length === 0 ? (
@@ -678,6 +766,10 @@ export default function TrainingTracker() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button onClick={e => { e.stopPropagation(); exportSessionPDF(s) }}
+                          style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #DDD6FE', background: '#F5F3FF', color: '#7C3AED', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                          📄 PDF
+                        </button>
                         <button onClick={e => { e.stopPropagation(); handleDelete(s.id) }}
                           disabled={deleting === s.id}
                           style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', color: '#DC2626', fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: deleting === s.id ? 0.5 : 1 }}>
