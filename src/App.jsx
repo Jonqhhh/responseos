@@ -107,95 +107,108 @@ function AppShell({ user, handleLogout }) {
         background: '#13082A',
         borderRight: '1px solid rgba(139,92,246,0.2)',
         boxShadow: '4px 0 24px rgba(0,0,0,0.2)',
+        position: 'relative', overflow: 'hidden'
       }}>
-        {/* Logo */}
-        <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          <img src="/logo.png" alt="ResponseOS" style={{ width: '100%', height: 52, objectFit: 'contain', objectPosition: 'left' }} />
-        </div>
+        {/* Sidebar purple underglow */}
+        <div style={{
+          position: 'absolute', bottom: -40, left: -40, right: -40,
+          height: 200, pointerEvents: 'none',
+          background: 'radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.3) 0%, transparent 70%)',
+          zIndex: 0
+        }} />
 
-        {/* Nav */}
-        <nav style={{ flex: 1, padding: '8px 12px', overflowY: 'auto' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '.1em', textTransform: 'uppercase', padding: '6px 8px', marginBottom: 4 }}>
-            Platform
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
+          {/* Logo — white version */}
+          <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            <img
+              src="/logo.png"
+              alt="ResponseOS"
+              style={{
+                width: '100%', height: 52, objectFit: 'contain', objectPosition: 'left',
+                filter: 'brightness(0) invert(1)'
+              }}
+            />
           </div>
-          {NAV.map(n => {
-            const Icon = n.icon
-            return (
-              <NavLink key={n.to} to={n.to} end={n.to === '/'}
-                style={({ isActive }) => ({
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '7px 10px', borderRadius: '10px',
-                  marginBottom: 2, textDecoration: 'none',
-                  fontSize: 13, fontWeight: isActive ? 700 : 500,
-                  color: isActive ? '#fff' : 'rgba(255,255,255,0.5)',
-                  background: isActive ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : 'transparent',
-                  boxShadow: isActive ? '0 2px 12px rgba(124,58,237,0.5)' : 'none',
-                  transition: 'all .12s'
-                })}
-                onMouseOver={e => { if (!e.currentTarget.style.background.includes('gradient')) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-                onMouseOut={e => { if (!e.currentTarget.style.background.includes('gradient')) e.currentTarget.style.background = 'transparent' }}
-              >
-                {({ isActive }) => (
-                  <>
-                    <div style={{
-                      width: 30, height: 30, borderRadius: '8px', flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: isActive ? 'rgba(255,255,255,0.15)' : 'rgba(139,92,246,0.2)',
-                      transition: 'all .12s'
-                    }}>
-                      <Icon size={15} color={isActive ? '#fff' : '#A78BFA'} strokeWidth={2} />
-                    </div>
-                    <span style={{ flex: 1 }}>{n.label}</span>
-                    {isActive && (
-                      <div style={{
-                        width: 5, height: 5, borderRadius: '50%',
-                        background: '#fff', opacity: 0.6
-                      }} />
-                    )}
-                  </>
-                )}
-              </NavLink>
-            )
-          })}
-        </nav>
 
-        {/* Profile + sign out */}
-        <div style={{ padding: '0 12px' }}>
-          <NavLink to="/profile" style={({ isActive }) => ({
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '7px 10px', borderRadius: '10px',
-            background: isActive ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : 'rgba(255,255,255,0.06)',
-            textDecoration: 'none', marginBottom: 8, transition: 'all .12s',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: isActive ? '0 2px 12px rgba(124,58,237,0.4)' : 'none'
-          })}>
-            <div style={{
-              width: 30, height: 30, borderRadius: '8px',
-              background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, flexShrink: 0,
-              boxShadow: '0 0 10px rgba(124,58,237,0.5)'
-            }}>
-              {user.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+          {/* Nav */}
+          <nav style={{ flex: 1, padding: '8px 12px', overflowY: 'auto' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '.1em', textTransform: 'uppercase', padding: '6px 8px', marginBottom: 4 }}>
+              Platform
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user.full_name}
+            {NAV.map(n => {
+              const Icon = n.icon
+              return (
+                <NavLink key={n.to} to={n.to} end={n.to === '/'}
+                  style={({ isActive }) => ({
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '7px 10px', borderRadius: '10px',
+                    marginBottom: 2, textDecoration: 'none',
+                    fontSize: 13, fontWeight: isActive ? 700 : 500,
+                    color: isActive ? '#fff' : 'rgba(255,255,255,0.5)',
+                    background: isActive ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : 'transparent',
+                    boxShadow: isActive ? '0 2px 12px rgba(124,58,237,0.5)' : 'none',
+                    transition: 'all .12s'
+                  })}
+                >
+                  {({ isActive }) => (
+                    <>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: '8px', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: isActive ? 'rgba(255,255,255,0.15)' : 'rgba(139,92,246,0.2)',
+                        transition: 'all .12s'
+                      }}>
+                        <Icon size={15} color={isActive ? '#fff' : '#A78BFA'} strokeWidth={2} />
+                      </div>
+                      <span style={{ flex: 1 }}>{n.label}</span>
+                      {isActive && (
+                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff', opacity: 0.6 }} />
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              )
+            })}
+          </nav>
+
+          {/* Profile + sign out */}
+          <div style={{ padding: '0 12px' }}>
+            <NavLink to="/profile" style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '7px 10px', borderRadius: '10px',
+              background: isActive ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : 'rgba(255,255,255,0.06)',
+              textDecoration: 'none', marginBottom: 8, transition: 'all .12s',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: isActive ? '0 2px 12px rgba(124,58,237,0.4)' : 'none'
+            })}>
+              <div style={{
+                width: 30, height: 30, borderRadius: '8px',
+                background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
+                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 700, flexShrink: 0,
+                boxShadow: '0 0 10px rgba(124,58,237,0.5)'
+              }}>
+                {user.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </div>
-              <div style={{ fontSize: 11, color: '#A78BFA', fontWeight: 700 }}>
-                {user.role.toUpperCase()}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.full_name}
+                </div>
+                <div style={{ fontSize: 11, color: '#A78BFA', fontWeight: 700 }}>
+                  {user.role.toUpperCase()}
+                </div>
               </div>
-            </div>
-          </NavLink>
-          <button onClick={handleLogout} style={{
-            width: '100%', padding: '8px', borderRadius: '8px',
-            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
-            color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 500,
-            cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all .12s'
-          }}
-            onMouseOver={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
-            onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-          >Sign out</button>
+            </NavLink>
+            <button onClick={handleLogout} style={{
+              width: '100%', padding: '8px', borderRadius: '8px',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+              color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 500,
+              cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all .12s'
+            }}
+              onMouseOver={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+              onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+            >Sign out</button>
+          </div>
         </div>
       </aside>
 

@@ -52,22 +52,42 @@ export default function Login({ onLogin }) {
       background: '#F5F3FF'
     }}>
       {/* Left panel — dark branded */}
-      <div style={{
+      <div className="login-left" style={{
         width: 420, flexShrink: 0, background: '#13082A',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         padding: '48px 48px 40px',
-        borderRight: '1px solid rgba(139,92,246,0.2)'
-      }} className="login-left">
-        {/* Logo */}
-        <div>
-          <img src="/logo.png" alt="ResponseOS" style={{ height: 48, objectFit: 'contain', objectPosition: 'left', marginBottom: 48 }} />
+        borderRight: '1px solid rgba(139,92,246,0.2)',
+        position: 'relative', overflow: 'hidden'
+      }}>
+        {/* Purple underglow */}
+        <div style={{
+          position: 'absolute', bottom: -60, left: -60, right: -60,
+          height: 300, pointerEvents: 'none',
+          background: 'radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.35) 0%, transparent 70%)'
+        }} />
+        <div style={{
+          position: 'absolute', top: -40, right: -40,
+          width: 200, height: 200, pointerEvents: 'none',
+          background: 'radial-gradient(ellipse at 100% 0%, rgba(139,92,246,0.15) 0%, transparent 70%)'
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* White logo */}
+          <img
+            src="/logo.png"
+            alt="ResponseOS"
+            style={{
+              height: 48, objectFit: 'contain', objectPosition: 'left',
+              marginBottom: 48,
+              filter: 'brightness(0) invert(1)'
+            }}
+          />
           <h1 style={{ fontSize: 32, fontWeight: 800, color: '#fff', lineHeight: 1.2, marginBottom: 16, letterSpacing: '-.02em' }}>
             Compliance you can<br />count on.
           </h1>
           <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 40 }}>
             AI-powered compliance and training management for energy, utility, and critical infrastructure teams.
           </p>
-          {/* Feature list */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {[
               { icon: '🛡️', text: 'Certification tracking with expiry alerts' },
@@ -89,7 +109,7 @@ export default function Login({ onLogin }) {
         </div>
 
         {/* Bottom badges */}
-        <div>
+        <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>
             Compliance frameworks
           </div>
@@ -110,7 +130,6 @@ export default function Login({ onLogin }) {
         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '40px 20px', position: 'relative'
       }}>
-        {/* Subtle underglow */}
         <div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
           background: 'radial-gradient(ellipse at 60% 40%, rgba(139,92,246,0.06) 0%, transparent 65%)'
@@ -131,9 +150,7 @@ export default function Login({ onLogin }) {
 
               <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                    Email
-                  </label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '.04em' }}>Email</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                     placeholder="you@company.com" required style={inputStyle}
                     onFocus={e => { e.target.style.borderColor = '#7C3AED'; e.target.style.background = '#fff'; e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.08)' }}
@@ -141,9 +158,7 @@ export default function Login({ onLogin }) {
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                    Password
-                  </label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '.04em' }}>Password</label>
                   <div style={{ position: 'relative' }}>
                     <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••" required style={{ ...inputStyle, paddingRight: 44 }}
@@ -170,8 +185,7 @@ export default function Login({ onLogin }) {
                   color: '#fff', border: 'none', borderRadius: '10px',
                   fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
                   fontFamily: 'Inter, sans-serif', opacity: loading ? 0.7 : 1,
-                  boxShadow: '0 4px 16px rgba(124,58,237,0.3)',
-                  transition: 'all .15s'
+                  boxShadow: '0 4px 16px rgba(124,58,237,0.3)', transition: 'all .15s'
                 }}>
                   {loading ? 'Signing in...' : 'Sign in →'}
                 </button>
@@ -199,9 +213,7 @@ export default function Login({ onLogin }) {
                 <h2 style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginBottom: 8, letterSpacing: '-.02em' }}>
                   Reset password
                 </h2>
-                <p style={{ fontSize: 14, color: '#9CA3AF' }}>
-                  Enter your email and we'll send a reset link.
-                </p>
+                <p style={{ fontSize: 14, color: '#9CA3AF' }}>Enter your email and we'll send a reset link.</p>
               </div>
 
               {resetSent ? (
@@ -217,9 +229,7 @@ export default function Login({ onLogin }) {
               ) : (
                 <form onSubmit={handleReset} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                      Email
-                    </label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '.04em' }}>Email</label>
                     <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)}
                       placeholder="you@company.com" required style={inputStyle}
                       onFocus={e => { e.target.style.borderColor = '#7C3AED'; e.target.style.background = '#fff'; e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.08)' }}
@@ -237,8 +247,7 @@ export default function Login({ onLogin }) {
                     background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
                     color: '#fff', border: 'none', borderRadius: '10px',
                     fontSize: 15, fontWeight: 700, cursor: 'pointer',
-                    fontFamily: 'Inter, sans-serif',
-                    boxShadow: '0 4px 16px rgba(124,58,237,0.3)'
+                    fontFamily: 'Inter, sans-serif', boxShadow: '0 4px 16px rgba(124,58,237,0.3)'
                   }}>
                     {resetLoading ? 'Sending...' : 'Send reset link →'}
                   </button>
@@ -258,11 +267,7 @@ export default function Login({ onLogin }) {
         </div>
       </div>
 
-      <style>{`
-        @media (max-width: 768px) {
-          .login-left { display: none !important; }
-        }
-      `}</style>
+      <style>{`@media (max-width: 768px) { .login-left { display: none !important; } }`}</style>
     </div>
   )
 }
