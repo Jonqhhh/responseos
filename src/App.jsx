@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { supabase } from './lib/supabase'
@@ -41,109 +41,6 @@ const NAV_ADMIN = [
   { to: '/docs',    icon: FolderLock, label: 'Document Vault' },
   { to: '/users',   icon: Users,      label: 'Users'          },
 ]
-
-function MoonrockSidebar({ children }) {
-  const canvasRef = useRef(null)
-
-  useEffect(() => {
-    const el = canvasRef.current
-    if (!el) return
-    const ctx = el.getContext('2d')
-    el.width = 240
-    el.height = window.innerHeight
-
-    const w = el.width
-    const h = el.height
-
-    const base = ctx.createLinearGradient(0, 0, w, h)
-    base.addColorStop(0,   '#EEEAF8')
-    base.addColorStop(0.3, '#E5E0F5')
-    base.addColorStop(0.6, '#DDD6F2')
-    base.addColorStop(1,   '#D5CEEE')
-    ctx.fillStyle = base
-    ctx.fillRect(0, 0, w, h)
-
-    const craters = [
-      { x: 180, y: 60,  r: 18, depth: 0.3  },
-      { x: 40,  y: 140, r: 12, depth: 0.25 },
-      { x: 160, y: 220, r: 22, depth: 0.35 },
-      { x: 60,  y: 320, r: 15, depth: 0.28 },
-      { x: 200, y: 400, r: 10, depth: 0.2  },
-      { x: 30,  y: 480, r: 20, depth: 0.32 },
-      { x: 140, y: 560, r: 14, depth: 0.25 },
-      { x: 90,  y: 650, r: 8,  depth: 0.18 },
-      { x: 210, y: 700, r: 16, depth: 0.28 },
-      { x: 50,  y: 780, r: 11, depth: 0.22 },
-    ]
-
-    craters.forEach(c => {
-      const shadow = ctx.createRadialGradient(c.x - c.r * 0.3, c.y - c.r * 0.3, 0, c.x, c.y, c.r)
-      shadow.addColorStop(0,   `rgba(100,80,160,${c.depth * 0.6})`)
-      shadow.addColorStop(0.6, `rgba(120,100,180,${c.depth * 0.3})`)
-      shadow.addColorStop(1,   'rgba(200,190,230,0)')
-      ctx.fillStyle = shadow
-      ctx.beginPath()
-      ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2)
-      ctx.fill()
-
-      const highlight = ctx.createRadialGradient(c.x + c.r * 0.4, c.y + c.r * 0.4, 0, c.x + c.r * 0.3, c.y + c.r * 0.3, c.r * 0.8)
-      highlight.addColorStop(0, `rgba(255,255,255,${c.depth * 0.5})`)
-      highlight.addColorStop(1, 'rgba(255,255,255,0)')
-      ctx.fillStyle = highlight
-      ctx.beginPath()
-      ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2)
-      ctx.fill()
-
-      ctx.strokeStyle = `rgba(140,120,190,${c.depth * 0.4})`
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2)
-      ctx.stroke()
-    })
-
-    for (let i = 0; i < 8000; i++) {
-      const x = Math.random() * w
-      const y = Math.random() * h
-      const size = Math.random() * 1.2
-      const alpha = Math.random() * 0.06
-      ctx.fillStyle = Math.random() > 0.5
-        ? `rgba(255,255,255,${alpha})`
-        : `rgba(100,80,160,${alpha})`
-      ctx.fillRect(x, y, size, size)
-    }
-
-    const topGlow = ctx.createLinearGradient(0, 0, 0, 200)
-    topGlow.addColorStop(0, 'rgba(139,92,246,0.08)')
-    topGlow.addColorStop(1, 'rgba(139,92,246,0)')
-    ctx.fillStyle = topGlow
-    ctx.fillRect(0, 0, w, 200)
-
-    const rightGlow = ctx.createLinearGradient(w - 30, 0, w, 0)
-    rightGlow.addColorStop(0, 'rgba(139,92,246,0)')
-    rightGlow.addColorStop(1, 'rgba(139,92,246,0.06)')
-    ctx.fillStyle = rightGlow
-    ctx.fillRect(w - 30, 0, 30, h)
-  }, [])
-
-  return (
-    <aside style={{
-      width: 240, flexShrink: 0, zIndex: 10,
-      display: 'flex', flexDirection: 'column',
-      padding: '0 0 20px',
-      borderRight: '1px solid rgba(139,92,246,0.15)',
-      boxShadow: '4px 0 24px rgba(139,92,246,0.08)',
-      position: 'relative', overflow: 'hidden'
-    }}>
-      <canvas ref={canvasRef} style={{
-        position: 'absolute', inset: 0, width: '100%', height: '100%',
-        pointerEvents: 'none', zIndex: 0
-      }} />
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
-        {children}
-      </div>
-    </aside>
-  )
-}
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -196,19 +93,29 @@ function AppShell({ user, handleLogout }) {
   const NAV = [...NAV_ALL, ...(isAdminOrAuditor ? NAV_ADMIN : [])]
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', position: 'relative', background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
 
       {showOnboarding && (
         <OnboardingWizard user={user} onComplete={() => setShowOnboarding(false)} />
       )}
 
-      <MoonrockSidebar>
-        <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(139,92,246,0.12)' }}>
+      {/* Dark sidebar */}
+      <aside style={{
+        width: 240, flexShrink: 0, zIndex: 10,
+        display: 'flex', flexDirection: 'column',
+        padding: '0 0 20px',
+        background: '#13082A',
+        borderRight: '1px solid rgba(139,92,246,0.2)',
+        boxShadow: '4px 0 24px rgba(0,0,0,0.2)',
+      }}>
+        {/* Logo */}
+        <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
           <img src="/logo.png" alt="ResponseOS" style={{ width: '100%', height: 52, objectFit: 'contain', objectPosition: 'left' }} />
         </div>
 
+        {/* Nav */}
         <nav style={{ flex: 1, padding: '8px 12px', overflowY: 'auto' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#8B7ABB', letterSpacing: '.1em', textTransform: 'uppercase', padding: '6px 8px', marginBottom: 4 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '.1em', textTransform: 'uppercase', padding: '6px 8px', marginBottom: 4 }}>
             Platform
           </div>
           {NAV.map(n => {
@@ -220,28 +127,29 @@ function AppShell({ user, handleLogout }) {
                   padding: '7px 10px', borderRadius: '10px',
                   marginBottom: 2, textDecoration: 'none',
                   fontSize: 13, fontWeight: isActive ? 700 : 500,
-                  color: isActive ? '#3B1FA8' : '#4A3B6A',
-                  background: isActive ? 'linear-gradient(135deg, rgba(237,233,255,0.95), rgba(221,214,254,0.95))' : 'transparent',
-                  boxShadow: isActive ? '0 2px 8px rgba(124,58,237,0.15), inset 0 1px 0 rgba(255,255,255,0.6)' : 'none',
+                  color: isActive ? '#fff' : 'rgba(255,255,255,0.5)',
+                  background: isActive ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : 'transparent',
+                  boxShadow: isActive ? '0 2px 12px rgba(124,58,237,0.5)' : 'none',
                   transition: 'all .12s'
                 })}
+                onMouseOver={e => { if (!e.currentTarget.style.background.includes('gradient')) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                onMouseOut={e => { if (!e.currentTarget.style.background.includes('gradient')) e.currentTarget.style.background = 'transparent' }}
               >
                 {({ isActive }) => (
                   <>
                     <div style={{
                       width: 30, height: 30, borderRadius: '8px', flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: isActive ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : 'rgba(139,92,246,0.12)',
-                      boxShadow: isActive ? '0 0 12px rgba(124,58,237,0.4)' : 'none',
+                      background: isActive ? 'rgba(255,255,255,0.15)' : 'rgba(139,92,246,0.2)',
                       transition: 'all .12s'
                     }}>
-                      <Icon size={15} color={isActive ? '#fff' : '#7C3AED'} strokeWidth={2} />
+                      <Icon size={15} color={isActive ? '#fff' : '#A78BFA'} strokeWidth={2} />
                     </div>
                     <span style={{ flex: 1 }}>{n.label}</span>
                     {isActive && (
                       <div style={{
                         width: 5, height: 5, borderRadius: '50%',
-                        background: '#7C3AED', boxShadow: '0 0 6px rgba(124,58,237,0.8)'
+                        background: '#fff', opacity: 0.6
                       }} />
                     )}
                   </>
@@ -251,42 +159,47 @@ function AppShell({ user, handleLogout }) {
           })}
         </nav>
 
+        {/* Profile + sign out */}
         <div style={{ padding: '0 12px' }}>
           <NavLink to="/profile" style={({ isActive }) => ({
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '7px 10px', borderRadius: '10px',
-            background: isActive ? 'linear-gradient(135deg, rgba(237,233,255,0.95), rgba(221,214,254,0.95))' : 'rgba(139,92,246,0.06)',
+            background: isActive ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : 'rgba(255,255,255,0.06)',
             textDecoration: 'none', marginBottom: 8, transition: 'all .12s',
-            border: '1px solid rgba(139,92,246,0.15)',
-            boxShadow: isActive ? '0 2px 8px rgba(124,58,237,0.15)' : 'none'
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: isActive ? '0 2px 12px rgba(124,58,237,0.4)' : 'none'
           })}>
             <div style={{
               width: 30, height: 30, borderRadius: '8px',
               background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
               color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 11, fontWeight: 700, flexShrink: 0,
-              boxShadow: '0 0 10px rgba(124,58,237,0.4)'
+              boxShadow: '0 0 10px rgba(124,58,237,0.5)'
             }}>
               {user.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1030', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.full_name}
               </div>
-              <div style={{ fontSize: 11, color: '#7C3AED', fontWeight: 700 }}>
+              <div style={{ fontSize: 11, color: '#A78BFA', fontWeight: 700 }}>
                 {user.role.toUpperCase()}
               </div>
             </div>
           </NavLink>
           <button onClick={handleLogout} style={{
             width: '100%', padding: '8px', borderRadius: '8px',
-            background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)',
-            color: '#8B7ABB', fontSize: 12, fontWeight: 500,
+            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+            color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 500,
             cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all .12s'
-          }}>Sign out</button>
+          }}
+            onMouseOver={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+            onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+          >Sign out</button>
         </div>
-      </MoonrockSidebar>
+      </aside>
 
+      {/* Main content */}
       <main style={{
         flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column',
         background: 'var(--bg)', position: 'relative', zIndex: 1
@@ -305,6 +218,7 @@ function AppShell({ user, handleLogout }) {
 
         <DemoBanner user={user} />
 
+        {/* Top bar */}
         <div style={{
           padding: '12px 20px',
           borderBottom: '1px solid rgba(139,92,246,0.1)',
@@ -325,6 +239,7 @@ function AppShell({ user, handleLogout }) {
         </div>
       </main>
 
+      {/* Mobile bottom nav */}
       <nav className="bottom-nav">
         <div className="bottom-nav-inner">
           {NAV_ALL.slice(0, 5).map(n => {
