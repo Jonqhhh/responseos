@@ -34,18 +34,18 @@ export default function Landing() {
   ]
 
   return (
-    <div style={{ minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif', background: '#FFFFFF', color: '#111827' }}>
+    <div style={{ minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif', background: '#F5F3FF', color: '#111827' }}>
 
-      {/* Purple underglow at top */}
+      {/* Purple underglow */}
       <div style={{
         position: 'fixed', top: 0, left: 0, right: 0, height: '60vh', zIndex: 0, pointerEvents: 'none',
         background: 'radial-gradient(ellipse at 60% 0%, rgba(139,92,246,0.07) 0%, transparent 65%)'
       }} />
 
       {/* Nav */}
-      <nav className="landing-nav" style={{
+      <nav style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 60px', borderBottom: '1px solid #F3F4F6',
+        padding: '14px 60px', borderBottom: '1px solid #E5E7EB',
         background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)',
         position: 'sticky', top: 0, zIndex: 100,
         boxShadow: '0 1px 8px rgba(139,92,246,0.06)'
@@ -84,23 +84,17 @@ export default function Landing() {
             <span style={{ color: '#7C3AED' }}>Always accountable.</span>
           </h1>
           <p style={{ fontSize: 18, color: '#6B7280', lineHeight: 1.7, marginBottom: 36, maxWidth: 480 }}>
-            AI-powered compliance and training management for energy, utility, and critical infrastructure teams. Monitor certifications, training hours, tasks, and security posture in real time.
+            AI-powered compliance and training management for energy, utility, and critical infrastructure teams.
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <button onClick={() => navigate('/quote')} style={{ ...btnPrimary, fontSize: 16, padding: '15px 36px' }}>
-              Get a quote →
-            </button>
-            <button onClick={() => navigate('/demo')} style={{ ...btnGhost, fontSize: 15, padding: '15px 28px' }}>
-              Request a demo
-            </button>
-            <button onClick={() => navigate('/login')} style={{ ...btnOutline, fontSize: 15, padding: '15px 24px' }}>
-              Sign in
-            </button>
+            <button onClick={() => navigate('/quote')} style={{ ...btnPrimary, fontSize: 16, padding: '15px 36px' }}>Get a quote →</button>
+            <button onClick={() => navigate('/demo')} style={{ ...btnGhost, fontSize: 15, padding: '15px 28px' }}>Request a demo</button>
+            <button onClick={() => navigate('/login')} style={{ ...btnOutline, fontSize: 15, padding: '15px 24px' }}>Sign in</button>
           </div>
-          <div style={{ marginTop: 36, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+          <div style={{ marginTop: 36, display: 'flex', gap: 20, flexWrap: 'wrap' }}>
             {['FERC Aligned', 'NERC CIP Ready', 'Training Tracked', 'ISO 27001'].map(b => (
               <div key={b} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>
-                <span style={{ color: '#059669', fontSize: 14 }}>✓</span> {b}
+                <span style={{ color: '#059669' }}>✓</span> {b}
               </div>
             ))}
           </div>
@@ -119,61 +113,78 @@ export default function Landing() {
             boxShadow: '0 20px 60px rgba(139,92,246,0.1), 0 4px 16px rgba(0,0,0,0.06)',
             overflow: 'hidden'
           }}>
-            <div style={{ background: '#1C1C1E', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {/* Mockup title bar — matches dark sidebar */}
+            <div style={{ background: '#13082A', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#EF4444' }} />
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#F59E0B' }} />
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10B981' }} />
               <img src="/logo.png" alt="ResponseOS" style={{ height: 20, objectFit: 'contain', marginLeft: 8 }} />
             </div>
-            <div style={{ padding: '16px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
-                {[
-                  { label: 'Compliance', value: '84%', color: '#059669', accent: null },
-                  { label: 'Certifications', value: '18', color: '#111827', accent: '#7C3AED' },
-                  { label: 'Alerts', value: '3', color: '#DC2626', accent: '#DC2626' },
-                ].map(m => (
-                  <div key={m.label} style={{
-                    background: '#F9FAFB', borderRadius: 8, padding: '10px',
-                    border: '1px solid #E5E7EB',
-                    borderTop: m.accent ? `3px solid ${m.accent}` : '1px solid #E5E7EB'
+            <div style={{ display: 'flex' }}>
+              {/* Mini sidebar */}
+              <div style={{ width: 44, background: '#13082A', padding: '8px 7px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[LayoutDashboard, ShieldCheck, CheckSquare, ClipboardList, Bell].map((Icon, i) => (
+                  <div key={i} style={{
+                    width: 30, height: 30, borderRadius: 7,
+                    background: i === 0 ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : 'rgba(139,92,246,0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
                   }}>
-                    <div style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 4 }}>{m.label}</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: m.color }}>{m.value}</div>
+                    <Icon size={13} color={i === 0 ? '#fff' : '#A78BFA'} strokeWidth={2} />
                   </div>
                 ))}
               </div>
-              <div style={{ background: '#F9FAFB', borderRadius: 8, padding: '10px', border: '1px solid #E5E7EB', marginBottom: 8 }}>
-                <div style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 6 }}>Training hours this week</div>
-                {[
-                  { name: 'Fire Safety', hrs: 4, color: '#DC2626' },
-                  { name: 'Hazmat', hrs: 2, color: '#D97706' },
-                  { name: 'Medical/CPR', hrs: 3, color: '#059669' },
-                ].map(t => (
-                  <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-                    <span style={{ fontSize: 10, color: '#6B7280', width: 70 }}>{t.name}</span>
-                    <div style={{ flex: 1, background: '#E5E7EB', borderRadius: 99, height: 4 }}>
-                      <div style={{ width: `${(t.hrs / 4) * 100}%`, height: 4, borderRadius: 99, background: t.color }} />
+              {/* Content */}
+              <div style={{ flex: 1, padding: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 }}>
+                  {[
+                    { label: 'Compliance', value: '84%', color: '#059669', accent: null },
+                    { label: 'Certifications', value: '18', color: '#111827', accent: '#7C3AED' },
+                    { label: 'Alerts', value: '3', color: '#DC2626', accent: '#DC2626' },
+                  ].map(m => (
+                    <div key={m.label} style={{
+                      background: '#F9FAFB', borderRadius: 7, padding: '8px',
+                      border: '1px solid #E5E7EB',
+                      borderTop: m.accent ? `2px solid ${m.accent}` : '1px solid #E5E7EB'
+                    }}>
+                      <div style={{ fontSize: 8, color: '#9CA3AF', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 3 }}>{m.label}</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: m.color }}>{m.value}</div>
                     </div>
-                    <span style={{ fontSize: 10, color: t.color, fontWeight: 700 }}>{t.hrs}h</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ background: '#F9FAFB', borderRadius: 8, padding: '10px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 6 }}>Recent alerts</div>
-                {[
-                  { msg: 'OSHA cert expires in 6 days', color: '#DC2626', tier: 'CRITICAL' },
-                  { msg: 'Q3 training goal not met', color: '#D97706', tier: 'WARNING' },
-                  { msg: 'Monthly report ready', color: '#7C3AED', tier: 'INFO' },
-                ].map((al, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', borderBottom: i < 2 ? '1px solid #E5E7EB' : 'none' }}>
-                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: al.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 10, color: '#6B7280', flex: 1 }}>{al.msg}</span>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: al.color }}>{al.tier}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <div style={{ background: '#F9FAFB', borderRadius: 7, padding: '8px', border: '1px solid #E5E7EB', marginBottom: 6 }}>
+                  <div style={{ fontSize: 8, color: '#9CA3AF', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 5 }}>Training hours this week</div>
+                  {[
+                    { name: 'Fire', hrs: 4, color: '#DC2626' },
+                    { name: 'Hazmat', hrs: 2, color: '#D97706' },
+                    { name: 'Medical', hrs: 3, color: '#059669' },
+                  ].map(t => (
+                    <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: 9, color: '#6B7280', width: 40 }}>{t.name}</span>
+                      <div style={{ flex: 1, background: '#E5E7EB', borderRadius: 99, height: 4 }}>
+                        <div style={{ width: `${(t.hrs / 4) * 100}%`, height: 4, borderRadius: 99, background: t.color }} />
+                      </div>
+                      <span style={{ fontSize: 9, color: t.color, fontWeight: 700 }}>{t.hrs}h</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: '#F9FAFB', borderRadius: 7, padding: '8px', border: '1px solid #E5E7EB' }}>
+                  <div style={{ fontSize: 8, color: '#9CA3AF', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 5 }}>Recent alerts</div>
+                  {[
+                    { msg: 'OSHA cert expires in 6 days', color: '#DC2626', tier: 'CRITICAL' },
+                    { msg: 'Q3 training goal not met', color: '#D97706', tier: 'WARNING' },
+                    { msg: 'Monthly report ready', color: '#7C3AED', tier: 'INFO' },
+                  ].map((al, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0', borderBottom: i < 2 ? '1px solid #E5E7EB' : 'none' }}>
+                      <div style={{ width: 4, height: 4, borderRadius: '50%', background: al.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: 9, color: '#6B7280', flex: 1 }}>{al.msg}</span>
+                      <span style={{ fontSize: 8, fontWeight: 700, color: al.color }}>{al.tier}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
+          {/* Floating badges */}
           <div style={{
             position: 'absolute', bottom: -16, left: -20, zIndex: 2,
             background: '#fff', borderRadius: 10, padding: '10px 14px',
@@ -201,7 +212,7 @@ export default function Landing() {
       </section>
 
       {/* Stats bar */}
-      <section style={{ background: '#F9FAFB', borderTop: '1px solid #F3F4F6', borderBottom: '1px solid #F3F4F6', padding: '36px 60px', position: 'relative', zIndex: 1 }}>
+      <section style={{ background: '#fff', borderTop: '1px solid #E5E7EB', borderBottom: '1px solid #E5E7EB', padding: '36px 60px', position: 'relative', zIndex: 1 }}>
         <div className="landing-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 32, maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
           {[
             { value: '1hr',  label: 'Alert engine cycle time' },
@@ -223,7 +234,7 @@ export default function Landing() {
           <div style={{ fontSize: 12, fontWeight: 700, color: '#7C3AED', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Platform features</div>
           <h2 style={{ fontSize: 38, fontWeight: 800, color: '#111827', letterSpacing: '-.02em' }}>Everything your compliance team needs</h2>
           <p style={{ fontSize: 16, color: '#6B7280', marginTop: 12, maxWidth: 560, margin: '12px auto 0' }}>
-            One platform for certifications, training, tasks, alerts, and audits — built for teams that can't afford to miss anything.
+            One platform for certifications, training, tasks, alerts, and audits.
           </p>
         </div>
         <div className="landing-features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
@@ -231,12 +242,12 @@ export default function Landing() {
             const Icon = f.icon
             return (
               <div key={f.title} style={{
-                background: '#FFFFFF', border: '1px solid #F3F4F6',
+                background: '#fff', border: '1px solid #E5E7EB',
                 borderRadius: 14, padding: '24px',
                 boxShadow: '0 1px 4px rgba(139,92,246,0.06)', transition: 'all .15s'
               }}
-                onMouseOver={e => { e.currentTarget.style.borderColor = '#DDD6FE'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(139,92,246,0.1)', e.currentTarget.style.transform = 'translateY(-2px)' }}
-                onMouseOut={e => { e.currentTarget.style.borderColor = '#F3F4F6'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(139,92,246,0.06)', e.currentTarget.style.transform = 'translateY(0)' }}
+                onMouseOver={e => { e.currentTarget.style.borderColor = '#DDD6FE'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(139,92,246,0.1)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+                onMouseOut={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(139,92,246,0.06)'; e.currentTarget.style.transform = 'translateY(0)' }}
               >
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #7C3AED, #5B21B6)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, boxShadow: '0 4px 12px rgba(124,58,237,0.25)' }}>
                   <Icon size={18} color="#fff" strokeWidth={2} />
@@ -250,7 +261,7 @@ export default function Landing() {
       </section>
 
       {/* Training Tracker deep dive */}
-      <section id="training" style={{ background: '#F9FAFB', borderTop: '1px solid #F3F4F6', borderBottom: '1px solid #F3F4F6', padding: '80px 60px', position: 'relative', zIndex: 1 }}>
+      <section id="training" style={{ background: '#fff', borderTop: '1px solid #E5E7EB', borderBottom: '1px solid #E5E7EB', padding: '80px 60px', position: 'relative', zIndex: 1 }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
             <div>
@@ -259,37 +270,37 @@ export default function Landing() {
                 Every training session — logged, tracked, and exportable.
               </h2>
               <p style={{ fontSize: 16, color: '#6B7280', lineHeight: 1.7, marginBottom: 28 }}>
-                ResponseOS tracks both daily supervisor-led training and quarterly third-party sessions across four core categories: Fire, Hazmat, Rescue, and Medical. Managers set goals, monitor progress, and get notified when teams fall behind.
+                Track daily and quarterly training across Fire, Hazmat, Rescue, and Medical categories. Set goals, monitor progress, and export branded PDF records for compliance files.
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
-                  { icon: '🔥', title: 'Fire', topics: 'Extinguisher, SCBA, Foam Operations, Drills' },
-                  { icon: '☣️', title: 'Hazmat', topics: 'ERG, Air Monitoring, Decon, Spill Control' },
-                  { icon: '🪢', title: 'Rescue', topics: 'High-Angle, Confined Space, Rope Systems' },
+                  { icon: '🔥', title: 'Fire',    topics: 'Extinguisher, SCBA, Foam Operations, Drills' },
+                  { icon: '☣️', title: 'Hazmat',  topics: 'ERG, Air Monitoring, Decon, Spill Control' },
+                  { icon: '🪢', title: 'Rescue',  topics: 'High-Angle, Confined Space, Rope Systems' },
                   { icon: '🏥', title: 'Medical', topics: 'CPR, AED, First Aid, Trauma Scenarios' },
                 ].map(t => (
-                  <div key={t.title} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 16px', background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB' }}>
-                    <div style={{ fontSize: 22, flexShrink: 0 }}>{t.icon}</div>
+                  <div key={t.title} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', background: '#F9FAFB', borderRadius: 10, border: '1px solid #E5E7EB' }}>
+                    <div style={{ fontSize: 20, flexShrink: 0 }}>{t.icon}</div>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{t.title}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{t.title}</div>
                       <div style={{ fontSize: 12, color: '#9CA3AF' }}>{t.topics}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                { icon: ClipboardList, title: 'Log training sessions',      desc: 'Record topic, subject, date, time, instructor, location, participants, and upload supporting documents or photos.' },
-                { icon: Users,         title: 'Track individual hours',     desc: 'See total training hours per employee broken down by category. Instantly identify who is behind on required hours.' },
-                { icon: Bell,          title: 'Goal alerts',                desc: 'Managers set daily and quarterly training goals. Automatic alerts fire when teams are not on track to meet targets.' },
-                { icon: ScrollText,    title: 'Export PDF records',         desc: 'Every training session can be exported as a branded PDF showing all details, participants, and instructor sign-off.' },
-                { icon: Bot,           title: 'Monday training summary',    desc: 'Managers receive a weekly AI-generated summary showing training progress, gaps, and upcoming quarterly sessions.' },
+                { icon: ClipboardList, title: 'Log training sessions',   desc: 'Record topic, date, time, instructor, location, participants, and duration.' },
+                { icon: Users,         title: 'Track individual hours',  desc: 'See total training hours per employee broken down by category.' },
+                { icon: Bell,          title: 'Goal alerts',             desc: 'Set daily and quarterly targets. Get alerted when teams fall behind.' },
+                { icon: ScrollText,    title: 'Export PDF records',      desc: 'Each session exports as a branded PDF with signature lines and a unique session ID.' },
+                { icon: Bot,           title: 'Monday training summary', desc: 'Weekly AI summary showing training progress, gaps, and upcoming quarterly sessions.' },
               ].map(f => {
                 const Icon = f.icon
                 return (
-                  <div key={f.title} style={{ display: 'flex', gap: 14, padding: '16px', background: '#fff', borderRadius: 12, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 9, background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div key={f.title} style={{ display: 'flex', gap: 14, padding: '14px', background: '#F9FAFB', borderRadius: 12, border: '1px solid #E5E7EB' }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 9, background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Icon size={16} color="#7C3AED" strokeWidth={2} />
                     </div>
                     <div>
@@ -310,7 +321,7 @@ export default function Landing() {
           <div style={{ fontSize: 12, fontWeight: 700, color: '#7C3AED', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Compliance frameworks</div>
           <h2 style={{ fontSize: 38, fontWeight: 800, color: '#111827', letterSpacing: '-.02em' }}>Built for regulated industries</h2>
         </div>
-        <div className="landing-frameworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
+        <div className="landing-frameworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
           {[
             { name: 'ISO 9001 / 27001', icon: '◈', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', desc: 'International standards for quality management and information security.' },
             { name: 'HIPAA',            icon: '♥', color: '#DC2626', bg: '#FEF2F2', border: '#FECACA', desc: 'Protects sensitive patient health data used in healthcare sectors.' },
@@ -336,41 +347,39 @@ export default function Landing() {
             </div>
           ))}
         </div>
-        <div style={{ padding: '16px 24px', background: '#1C1C1E', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
+        <div style={{ padding: '16px 24px', background: '#13082A', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>ResponseOS aligns with all major compliance frameworks</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {['FERC', 'NERC CIP', 'ISO', 'HIPAA', 'SOC 2', 'OSHA', 'GDPR', 'PCI DSS'].map(b => (
-              <span key={b} style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: 'rgba(139,92,246,0.2)', color: '#C4B5FD', border: '1px solid rgba(139,92,246,0.3)' }}>{b}</span>
+              <span key={b} style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: 'rgba(139,92,246,0.2)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.3)' }}>{b}</span>
             ))}
           </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section id="how" style={{ background: '#F9FAFB', borderTop: '1px solid #F3F4F6', borderBottom: '1px solid #F3F4F6', padding: '80px 60px', position: 'relative', zIndex: 1 }}>
+      <section id="how" style={{ background: '#fff', borderTop: '1px solid #E5E7EB', borderBottom: '1px solid #E5E7EB', padding: '80px 60px', position: 'relative', zIndex: 1 }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#7C3AED', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>How it works</div>
             <h2 style={{ fontSize: 38, fontWeight: 800, color: '#111827', letterSpacing: '-.02em' }}>Set up in minutes. Audit-ready forever.</h2>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {[
-              { step: '01', title: 'Add your team', desc: 'Create accounts for every employee — assign roles so Admins, Supervisors, Employees, and Auditors each see exactly what they need.' },
-              { step: '02', title: 'Log certifications and training', desc: 'Enter credentials, expiry dates, and training sessions by topic and category. ResponseOS monitors everything and flags issues before they become problems.' },
-              { step: '03', title: 'Let the AI work', desc: 'The alert engine runs every hour. The AI assistant answers questions in real time. Every Monday, leadership gets an AI risk and training summary in their inbox.' },
-              { step: '04', title: 'Walk into any audit', desc: 'Export your immutable audit log, training records, compliance report, and certification history in seconds. Auditors get read-only access — no disruption to operations.' },
-            ].map((s, i) => (
-              <div key={s.step} style={{ display: 'flex', gap: 24, padding: '28px 0', borderBottom: i < 3 ? '1px solid #E5E7EB' : 'none' }}>
-                <div style={{ fontSize: 26, fontWeight: 800, color: '#DDD6FE', flexShrink: 0, width: 52, lineHeight: 1, fontFamily: 'IBM Plex Mono, monospace', WebkitTextStroke: '1px #C4B5FD' }}>
-                  {s.step}
-                </div>
-                <div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: '#111827', marginBottom: 8 }}>{s.title}</div>
-                  <div style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7 }}>{s.desc}</div>
-                </div>
+          {[
+            { step: '01', title: 'Add your team', desc: 'Create accounts for every employee — assign roles so Admins, Supervisors, Employees, and Auditors each see exactly what they need.' },
+            { step: '02', title: 'Log certifications and training', desc: 'Enter credentials, expiry dates, and training sessions by topic and category. ResponseOS monitors everything and flags issues before they become problems.' },
+            { step: '03', title: 'Let the AI work', desc: 'The alert engine runs every hour. The AI assistant answers questions in real time. Every Monday, leadership gets an AI risk and training summary in their inbox.' },
+            { step: '04', title: 'Walk into any audit', desc: 'Export your immutable audit log, training records, compliance report, and certification history in seconds.' },
+          ].map((s, i) => (
+            <div key={s.step} style={{ display: 'flex', gap: 24, padding: '28px 0', borderBottom: i < 3 ? '1px solid #E5E7EB' : 'none' }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#DDD6FE', flexShrink: 0, width: 52, lineHeight: 1, fontFamily: 'IBM Plex Mono, monospace', WebkitTextStroke: '1px #C4B5FD' }}>
+                {s.step}
               </div>
-            ))}
-          </div>
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: '#111827', marginBottom: 8 }}>{s.title}</div>
+                <div style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7 }}>{s.desc}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -382,14 +391,14 @@ export default function Landing() {
         </div>
         <div className="landing-roles-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
           {[
-            { role: 'Admin',      icon: Users,          color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE', desc: 'Full platform control. Manage users, configure settings, and access every report.' },
-            { role: 'Supervisor', icon: CheckSquare,    color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', desc: 'Assign tasks, log training sessions, monitor team compliance and training goals.' },
-            { role: 'Employee',   icon: ShieldCheck,    color: '#6B7280', bg: '#F9FAFB', border: '#E5E7EB', desc: 'Complete tasks, manage your own certifications, and view personal training history.' },
-            { role: 'Auditor',    icon: FolderLock,     color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', desc: 'Read-only access to all logs, reports, training records, and compliance history.' },
+            { role: 'Admin',      icon: Users,       color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE', desc: 'Full platform control. Manage users, configure settings, and access every report.' },
+            { role: 'Supervisor', icon: CheckSquare, color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', desc: 'Assign tasks, log training sessions, monitor team compliance and training goals.' },
+            { role: 'Employee',   icon: ShieldCheck, color: '#374151', bg: '#F9FAFB', border: '#E5E7EB', desc: 'Complete tasks, manage your own certifications, and view personal training history.' },
+            { role: 'Auditor',    icon: FolderLock,  color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', desc: 'Read-only access to all logs, reports, training records, and compliance history.' },
           ].map(r => {
             const Icon = r.icon
             return (
-              <div key={r.role} style={{ background: '#fff', border: `1px solid ${r.border}`, borderRadius: 14, padding: '24px 20px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div key={r.role} style={{ background: '#fff', border: `1px solid ${r.border}`, borderRadius: 14, padding: '24px 20px', textAlign: 'center' }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: r.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', border: `1px solid ${r.border}` }}>
                   <Icon size={22} color={r.color} strokeWidth={2} />
                 </div>
@@ -402,17 +411,17 @@ export default function Landing() {
       </section>
 
       {/* Hardware teaser */}
-      <section style={{ background: '#0F0A2E', padding: '64px 60px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+      <section style={{ background: '#13082A', padding: '64px 60px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 14px', borderRadius: 99, background: 'rgba(139,92,246,0.2)', color: '#C4B5FD', fontSize: 12, fontWeight: 600, marginBottom: 20, border: '1px solid rgba(139,92,246,0.3)' }}>
           🚧 Coming soon — Hardware Suite
         </div>
         <h2 style={{ fontSize: 34, fontWeight: 800, color: '#fff', marginBottom: 12, letterSpacing: '-.02em' }}>ResponseOS is going physical.</h2>
-        <p style={{ fontSize: 16, color: '#6B7280', maxWidth: 500, margin: '0 auto 28px' }}>
+        <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.45)', maxWidth: 500, margin: '0 auto 28px' }}>
           Site kiosks, biometric terminals, and IoT sensors — bringing compliance intelligence directly to your job sites.
         </p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
           {['Site Kiosks', 'Biometric Terminals', 'IoT Sensors', 'Badge Scanners'].map(item => (
-            <div key={item} style={{ padding: '7px 14px', borderRadius: 99, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 13, color: '#6B7280', fontWeight: 500 }}>
+            <div key={item} style={{ padding: '7px 14px', borderRadius: 99, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
               {item}
             </div>
           ))}
@@ -437,13 +446,13 @@ export default function Landing() {
             Sign in
           </button>
         </div>
-        <div style={{ marginTop: 24, fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
+        <div style={{ marginTop: 24, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
           No spam. No commitment. Response within 24 hours.
         </div>
       </section>
 
       {/* Footer */}
-      <footer style={{ padding: '24px 60px', borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', position: 'relative', zIndex: 1 }}>
+      <footer style={{ padding: '24px 60px', borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', position: 'relative', zIndex: 1 }}>
         <img src="/logo.png" alt="ResponseOS" style={{ height: 36, objectFit: 'contain' }} />
         <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>© 2026 ResponseOS · Houston, TX</div>
         <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>responseos.net</div>
