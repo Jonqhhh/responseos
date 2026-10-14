@@ -2,18 +2,18 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 import Toast from '../components/Toast'
-import { ClipboardList, Plus, X, ChevronDown, ChevronUp, Clock, Award, Target, AlertTriangle } from 'lucide-react'
+import { ClipboardList, Plus, X, ChevronDown, ChevronUp, Clock, Award, Target, AlertTriangle, Flame, Biohazard, Anchor, HeartPulse } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 const CATEGORIES = [
-  { id: 'fire',    label: 'Fire',    icon: '🔥', color: '#DC2626', bg: '#FEF2F2', border: '#FECACA',
+  { id: 'fire',    label: 'Fire',    Icon: Flame,      color: '#DC2626', bg: '#FEF2F2', border: '#FECACA',
     topics: ['Fire Extinguisher Operations', 'SCBA Operations', 'Foam Operations', 'Defensive Fire Attack', 'Fire Behavior', 'Fire Drills', 'Wildland Fire', 'Other'] },
-  { id: 'hazmat',  label: 'Hazmat',  icon: '☣️', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A',
+  { id: 'hazmat',  label: 'Hazmat',  Icon: Biohazard,  color: '#D97706', bg: '#FFFBEB', border: '#FDE68A',
     topics: ['ERG Reference', 'Air Monitoring', 'Decontamination', 'Spill Control', 'Chemical Identification', 'PPE Selection', 'Incident Command', 'Other'] },
-  { id: 'rescue',  label: 'Rescue',  icon: '🪢', color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE',
+  { id: 'rescue',  label: 'Rescue',  Icon: Anchor,     color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE',
     topics: ['High-Angle Rescue', 'Confined Space Entry', 'Rope Systems', 'Vehicle Extrication', 'Water Rescue', 'Trench Rescue', 'Structural Collapse', 'Other'] },
-  { id: 'medical', label: 'Medical', icon: '🏥', color: '#059669', bg: '#ECFDF5', border: '#A7F3D0',
+  { id: 'medical', label: 'Medical', Icon: HeartPulse, color: '#059669', bg: '#ECFDF5', border: '#A7F3D0',
     topics: ['CPR/AED', 'First Aid', 'Trauma Scenarios', 'Patient Assessment', 'Hemorrhage Control', 'EMS Operations', 'Mass Casualty', 'Other'] },
 ]
 
@@ -54,6 +54,9 @@ export default function TrainingTracker() {
   const [user, setUser] = useState(null)
   const [showNew, setShowNew] = useState(false)
   const [showGoals, setShowGoals] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportFrom, setExportFrom] = useState('')
+  const [exportTo, setExportTo] = useState('')
   const [saving, setSaving] = useState(false)
   const [savingGoals, setSavingGoals] = useState(false)
   const [filter, setFilter] = useState('all')
@@ -85,7 +88,6 @@ export default function TrainingTracker() {
       const { data: profile } = await supabase.from('users').select('*').eq('id', authUser.id).single()
       setUser(profile)
       const isDemo = profile?.is_demo === true
-
       const [sessRes, usersRes, goalsRes] = await Promise.all([
         supabase.from('training_sessions')
           .select('*, users!training_sessions_logged_by_fkey(full_name), instructor:users!training_sessions_instructor_id_fkey(full_name)')
@@ -93,34 +95,26 @@ export default function TrainingTracker() {
         supabase.from('users').select('id, full_name').eq('is_demo', isDemo).eq('is_active', true).order('full_name'),
         supabase.from('training_goals').select('*').eq('is_demo', isDemo),
       ])
-
       setSessions(sessRes.data || [])
       setUsers(usersRes.data || [])
       const goalsData = goalsRes.data || []
       setGoals(goalsData)
       if (goalsData.length > 0) {
         const gf = { ...goalForm }
-        goalsData.forEach(g => {
-          if (gf[g.category]) gf[g.category] = { daily_hours: g.daily_hours, quarterly_hours: g.quarterly_hours }
-        })
+        goalsData.forEach(g => { if (gf[g.category]) gf[g.category] = { daily_hours: g.daily_hours, quarterly_hours: g.quarterly_hours } })
         setGoalForm(gf)
       }
     }
     setLoading(false)
   }
 
-  function showToast(message, type = 'success') {
-    setToast({ message, type, id: Date.now() })
-  }
+  function showToast(message, type = 'success') { setToast({ message, type, id: Date.now() }) }
 
   function setF(field, value) {
     setForm(prev => {
       const next = { ...prev, [field]: value }
       if (field === 'start_time' || field === 'end_time') {
-        const hrs = calcHours(
-          field === 'start_time' ? value : prev.start_time,
-          field === 'end_time' ? value : prev.end_time
-        )
+        const hrs = calcHours(field === 'start_time' ? value : prev.start_time, field === 'end_time' ? value : prev.end_time)
         if (hrs > 0) next.duration_hours = hrs.toFixed(2)
       }
       return next
@@ -128,112 +122,64 @@ export default function TrainingTracker() {
   }
 
   function toggleParticipant(id) {
-    setForm(prev => ({
-      ...prev,
-      participants: prev.participants.includes(id)
-        ? prev.participants.filter(p => p !== id)
-        : [...prev.participants, id]
-    }))
+    setForm(prev => ({ ...prev, participants: prev.participants.includes(id) ? prev.participants.filter(p => p !== id) : [...prev.participants, id] }))
   }
 
   async function handleSubmit() {
-    if (!form.title || !form.category || !form.topic || !form.training_date) {
-      showToast('Please fill in title, category, topic, and date.', 'error')
-      return
-    }
+    if (!form.title || !form.category || !form.topic || !form.training_date) { showToast('Please fill in title, category, topic, and date.', 'error'); return }
     setSaving(true)
-    const isDemo = user?.is_demo === true
     const { error } = await supabase.from('training_sessions').insert({
-      logged_by: user?.id,
-      instructor_id: form.instructor_id || null,
+      logged_by: user?.id, instructor_id: form.instructor_id || null,
       title: form.title, category: form.category, topic: form.topic,
-      training_date: form.training_date,
-      start_time: form.start_time || null, end_time: form.end_time || null,
+      training_date: form.training_date, start_time: form.start_time || null, end_time: form.end_time || null,
       duration_hours: form.duration_hours ? parseFloat(form.duration_hours) : null,
       location: form.location || null, notes: form.notes || null,
-      is_quarterly: form.is_quarterly,
-      third_party_provider: form.third_party_provider || null,
-      participants: form.participants, is_demo: isDemo
+      is_quarterly: form.is_quarterly, third_party_provider: form.third_party_provider || null,
+      participants: form.participants, is_demo: user?.is_demo === true
     })
     if (error) { showToast(error.message, 'error'); setSaving(false); return }
-    setSaving(false)
-    setShowNew(false)
-    setForm({
-      title: '', category: 'fire', topic: '',
-      training_date: new Date().toISOString().split('T')[0],
-      start_time: '', end_time: '', duration_hours: '',
-      location: '', notes: '', is_quarterly: false,
-      third_party_provider: '', instructor_id: '', participants: []
-    })
-    await loadAll()
-    showToast('Training session logged successfully.')
+    setSaving(false); setShowNew(false)
+    setForm({ title: '', category: 'fire', topic: '', training_date: new Date().toISOString().split('T')[0], start_time: '', end_time: '', duration_hours: '', location: '', notes: '', is_quarterly: false, third_party_provider: '', instructor_id: '', participants: [] })
+    await loadAll(); showToast('Training session logged successfully.')
   }
 
   async function handleSaveGoals() {
     setSavingGoals(true)
-    const isDemo = user?.is_demo === true
     for (const cat of CATEGORIES) {
       const g = goalForm[cat.id]
       const existing = goals.find(goal => goal.category === cat.id)
       if (existing) {
-        await supabase.from('training_goals').update({
-          daily_hours: parseFloat(g.daily_hours),
-          quarterly_hours: parseFloat(g.quarterly_hours)
-        }).eq('id', existing.id)
+        await supabase.from('training_goals').update({ daily_hours: parseFloat(g.daily_hours), quarterly_hours: parseFloat(g.quarterly_hours) }).eq('id', existing.id)
       } else {
-        await supabase.from('training_goals').insert({
-          category: cat.id,
-          daily_hours: parseFloat(g.daily_hours),
-          quarterly_hours: parseFloat(g.quarterly_hours),
-          is_demo: isDemo
-        })
+        await supabase.from('training_goals').insert({ category: cat.id, daily_hours: parseFloat(g.daily_hours), quarterly_hours: parseFloat(g.quarterly_hours), is_demo: user?.is_demo === true })
       }
     }
-    await loadAll()
-    setSavingGoals(false)
-    setShowGoals(false)
-    showToast('Training goals updated.')
+    await loadAll(); setSavingGoals(false); setShowGoals(false); showToast('Training goals updated.')
   }
 
   async function handleDelete(id) {
     if (!window.confirm('Delete this training session?')) return
     setDeleting(id)
     await supabase.from('training_sessions').delete().eq('id', id)
-    await loadAll()
-    setDeleting(null)
-    showToast('Training session deleted.', 'error')
+    await loadAll(); setDeleting(null); showToast('Training session deleted.', 'error')
   }
 
-  // Stats
   const now = new Date()
   const totalHours = sessions.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
-  const thisMonth = sessions.filter(s => {
-    const d = new Date(s.training_date)
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-  })
-  const monthHours = thisMonth.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
+  const monthHours = sessions.filter(s => { const d = new Date(s.training_date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() }).reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
   const qStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)
-  const quarterSessions = sessions.filter(s => new Date(s.training_date) >= qStart)
-  const quarterHours = quarterSessions.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
+  const quarterHours = sessions.filter(s => new Date(s.training_date) >= qStart).reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
 
   const catStats = CATEGORIES.map(cat => {
     const catSess = sessions.filter(s => s.category === cat.id)
     const catHours = catSess.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
-    const monthSess = catSess.filter(s => {
-      const d = new Date(s.training_date)
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    })
-    const monthHrs = monthSess.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
-    const qSess = catSess.filter(s => new Date(s.training_date) >= qStart)
-    const qHrs = qSess.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
+    const monthHrs = catSess.filter(s => { const d = new Date(s.training_date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() }).reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
+    const qHrs = catSess.filter(s => new Date(s.training_date) >= qStart).reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
     const goal = goals.find(g => g.category === cat.id)
     const dailyGoal = parseFloat(goal?.daily_hours || 1)
     const quarterlyGoal = parseFloat(goal?.quarterly_hours || 8)
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-    const monthGoal = dailyGoal * daysInMonth
-    const monthBehind = monthHrs < monthGoal * 0.5
-    const qBehind = qHrs < quarterlyGoal * 0.5
-    return { ...cat, catHours, monthHrs, qHrs, monthGoal, dailyGoal, quarterlyGoal, monthBehind, qBehind, sessCount: catSess.length }
+    const monthGoal = dailyGoal * new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    return { ...cat, catHours, monthHrs, qHrs, monthGoal, dailyGoal, quarterlyGoal, monthBehind: monthHrs < monthGoal * 0.5, qBehind: qHrs < quarterlyGoal * 0.5, sessCount: catSess.length }
   })
 
   const behindCount = catStats.filter(c => c.monthBehind || c.qBehind).length
@@ -241,178 +187,98 @@ export default function TrainingTracker() {
   const isAdmin = ['admin', 'supervisor'].includes(user?.role)
   const cat = CATEGORIES.find(c => c.id === form.category)
 
+  const exportFiltered = sessions.filter(s => {
+    if (exportFrom && s.training_date < exportFrom) return false
+    if (exportTo && s.training_date > exportTo) return false
+    return true
+  })
+  const exportHours = exportFiltered.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
+
   function exportSessionPDF(s) {
     const c = CATEGORIES.find(x => x.id === s.category) || CATEGORIES[0]
-    const participantNames = (s.participants || []).map(pid => {
-      const u = users.find(u => u.id === pid)
-      return u?.full_name || ''
-    }).filter(Boolean)
-
+    const participantNames = (s.participants || []).map(pid => { const u = users.find(u => u.id === pid); return u?.full_name || '' }).filter(Boolean)
     const doc = new jsPDF()
     const sessionId = s.id?.slice(0, 8).toUpperCase() || 'N/A'
-
-    // Header bar
-    doc.setFillColor(124, 58, 237)
-    doc.rect(0, 0, 220, 32, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(16)
-    doc.setFont('helvetica', 'bold')
+    doc.setFillColor(124, 58, 237); doc.rect(0, 0, 220, 32, 'F')
+    doc.setTextColor(255, 255, 255); doc.setFontSize(16); doc.setFont('helvetica', 'bold')
     doc.text('ResponseOS — Training Record', 14, 12)
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal')
     doc.text(`Session ID: ROS-${sessionId}`, 14, 20)
     doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, 14, 27)
-
-    // Session title
-    doc.setTextColor(0, 0, 0)
-    doc.setFontSize(18)
-    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0); doc.setFontSize(18); doc.setFont('helvetica', 'bold')
     doc.text(s.title, 14, 46)
-
-    // Category line
-    doc.setFontSize(11)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(100, 100, 100)
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 100, 100)
     doc.text(`${c.label} Training${s.is_quarterly ? '  ·  Quarterly Session' : ''}${s.third_party_provider ? `  ·  ${s.third_party_provider}` : ''}`, 14, 54)
-
-    // Divider
-    doc.setDrawColor(220, 214, 254)
-    doc.setLineWidth(0.5)
-    doc.line(14, 58, 196, 58)
-
-    // Session details
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
+    doc.setDrawColor(220, 214, 254); doc.setLineWidth(0.5); doc.line(14, 58, 196, 58)
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 0, 0)
     doc.text('Session Details', 14, 68)
-
     autoTable(doc, {
-      startY: 72,
-      head: [],
+      startY: 72, head: [],
       body: [
-        ['Training Date',  formatDate(s.training_date),   'Category',   c.label],
-        ['Start Time',     s.start_time || '—',           'End Time',   s.end_time || '—'],
-        ['Duration',       s.duration_hours ? `${parseFloat(s.duration_hours).toFixed(1)} hours` : '—', 'Location', s.location || '—'],
-        ['Instructor',     s.instructor?.full_name || '—', 'Logged By',  s.users?.full_name || '—'],
-        ['Topic',          s.topic || '—',                'Type',       s.is_quarterly ? 'Quarterly' : 'Daily'],
+        ['Training Date', formatDate(s.training_date), 'Category', c.label],
+        ['Start Time', s.start_time || '—', 'End Time', s.end_time || '—'],
+        ['Duration', s.duration_hours ? `${parseFloat(s.duration_hours).toFixed(1)} hours` : '—', 'Location', s.location || '—'],
+        ['Instructor', s.instructor?.full_name || '—', 'Logged By', s.users?.full_name || '—'],
+        ['Topic', s.topic || '—', 'Type', s.is_quarterly ? 'Quarterly' : 'Daily'],
       ],
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 36, fillColor: [245, 243, 255], textColor: [91, 33, 182] },
-        1: { cellWidth: 58 },
-        2: { fontStyle: 'bold', cellWidth: 36, fillColor: [245, 243, 255], textColor: [91, 33, 182] },
-        3: { cellWidth: 58 },
-      },
-      bodyStyles: { fontSize: 10, cellPadding: 5 },
-      theme: 'grid',
-      tableLineColor: [221, 214, 254],
-      tableLineWidth: 0.3,
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 36, fillColor: [245, 243, 255], textColor: [91, 33, 182] }, 1: { cellWidth: 58 }, 2: { fontStyle: 'bold', cellWidth: 36, fillColor: [245, 243, 255], textColor: [91, 33, 182] }, 3: { cellWidth: 58 } },
+      bodyStyles: { fontSize: 10, cellPadding: 5 }, theme: 'grid', tableLineColor: [221, 214, 254], tableLineWidth: 0.3,
     })
-
-    // Participants
     const y2 = doc.lastAutoTable.finalY + 12
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 0, 0)
     doc.text(`Participants (${participantNames.length})`, 14, y2)
-
     if (participantNames.length > 0) {
-      autoTable(doc, {
-        startY: y2 + 4,
-        head: [['#', 'Name', 'Attended']],
-        body: participantNames.map((name, i) => [i + 1, name, '✓']),
-        headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', fontSize: 10 },
-        bodyStyles: { fontSize: 10 },
-        alternateRowStyles: { fillColor: [245, 243, 255] },
-        columnStyles: { 0: { cellWidth: 14 }, 2: { cellWidth: 24, halign: 'center' } }
-      })
+      autoTable(doc, { startY: y2 + 4, head: [['#', 'Name', 'Attended']], body: participantNames.map((name, i) => [i + 1, name, '✓']), headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', fontSize: 10 }, bodyStyles: { fontSize: 10 }, alternateRowStyles: { fillColor: [245, 243, 255] }, columnStyles: { 0: { cellWidth: 14 }, 2: { cellWidth: 24, halign: 'center' } } })
     } else {
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(150, 150, 150)
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 150, 150)
       doc.text('No participants recorded.', 14, y2 + 10)
     }
-
-    // Notes
     if (s.notes) {
       const y3 = (participantNames.length > 0 ? doc.lastAutoTable.finalY : y2 + 16) + 12
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(0, 0, 0)
-      doc.text('Notes', 14, y3)
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(55, 65, 81)
-      const lines = doc.splitTextToSize(s.notes, 172)
-      doc.text(lines, 14, y3 + 8)
+      doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 0, 0); doc.text('Notes', 14, y3)
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81)
+      doc.text(doc.splitTextToSize(s.notes, 172), 14, y3 + 8)
     }
-
-    // Signature lines
     const sigY = Math.min(doc.internal.pageSize.height - 50, 240)
-    doc.setDrawColor(200, 200, 200)
-    doc.setLineWidth(0.4)
-    doc.line(14, sigY, 90, sigY)
-    doc.line(110, sigY, 186, sigY)
-    doc.setFontSize(9)
-    doc.setTextColor(150, 150, 150)
-    doc.text('Instructor Signature', 14, sigY + 6)
-    doc.text('Supervisor Signature', 110, sigY + 6)
-    doc.text('Date: _______________', 14, sigY + 14)
-    doc.text('Date: _______________', 110, sigY + 14)
-
-    // Footer
-    doc.setFontSize(8)
-    doc.setTextColor(180, 180, 180)
+    doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.4)
+    doc.line(14, sigY, 90, sigY); doc.line(110, sigY, 186, sigY)
+    doc.setFontSize(9); doc.setTextColor(150, 150, 150)
+    doc.text('Instructor Signature', 14, sigY + 6); doc.text('Supervisor Signature', 110, sigY + 6)
+    doc.text('Date: _______________', 14, sigY + 14); doc.text('Date: _______________', 110, sigY + 14)
+    doc.setFontSize(8); doc.setTextColor(180, 180, 180)
     doc.text(`ResponseOS Training Record  ·  Session ID: ROS-${sessionId}  ·  responseos.net`, 14, doc.internal.pageSize.height - 8)
-
     doc.save(`training-record-${s.training_date}-${sessionId}.pdf`)
     showToast('Session record exported as PDF.')
   }
 
-  function exportPDF() {
+  function exportPDF(exportSessions = sessions) {
     const doc = new jsPDF()
-    doc.setFillColor(124, 58, 237)
-    doc.rect(0, 0, 220, 28, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(16)
-    doc.setFont('helvetica', 'bold')
+    const exportHrs = exportSessions.reduce((sum, s) => sum + (parseFloat(s.duration_hours) || 0), 0)
+    doc.setFillColor(124, 58, 237); doc.rect(0, 0, 220, 32, 'F')
+    doc.setTextColor(255, 255, 255); doc.setFontSize(16); doc.setFont('helvetica', 'bold')
     doc.text('ResponseOS — Training Report', 14, 11)
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, 14, 19)
-    doc.text(`Total: ${sessions.length} sessions · ${totalHours.toFixed(1)}h`, 14, 25)
-    doc.setTextColor(0, 0, 0)
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.text('Category Summary', 14, 40)
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal')
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, 14, 20)
+    doc.text(`Total: ${exportSessions.length} sessions · ${exportHrs.toFixed(1)}h${exportFrom || exportTo ? ` · ${exportFrom || 'start'} to ${exportTo || 'today'}` : ''}`, 14, 27)
+    doc.setTextColor(0, 0, 0); doc.setFontSize(12); doc.setFont('helvetica', 'bold')
+    doc.text('Category Summary', 14, 44)
     autoTable(doc, {
-      startY: 44,
-      head: [['Category', 'Sessions', 'Total Hours', 'This Month', 'This Quarter', 'Status']],
-      body: catStats.map(c => [c.label, c.sessCount.toString(), c.catHours.toFixed(1) + 'h', c.monthHrs.toFixed(1) + 'h', c.qHrs.toFixed(1) + 'h', (c.monthBehind || c.qBehind) ? 'Behind' : 'On Track']),
-      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', fontSize: 10 },
-      bodyStyles: { fontSize: 10 },
-      alternateRowStyles: { fillColor: [245, 243, 255] },
+      startY: 48,
+      head: [['Category', 'Sessions', 'Total Hours']],
+      body: CATEGORIES.map(cat => { const s = exportSessions.filter(x => x.category === cat.id); const h = s.reduce((sum, x) => sum + (parseFloat(x.duration_hours) || 0), 0); return [cat.label, s.length.toString(), h.toFixed(1) + 'h'] }),
+      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', fontSize: 10 }, bodyStyles: { fontSize: 10 }, alternateRowStyles: { fillColor: [245, 243, 255] },
     })
     const y1 = doc.lastAutoTable.finalY + 12
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.text('All Training Sessions', 14, y1)
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.text('Training Sessions', 14, y1)
     autoTable(doc, {
       startY: y1 + 4,
       head: [['Date', 'Title', 'Category', 'Topic', 'Hours', 'Instructor', 'Location', 'Q?']],
-      body: sessions.map(s => {
-        const c = CATEGORIES.find(x => x.id === s.category)
-        return [formatDate(s.training_date), s.title, c?.label || s.category, s.topic, s.duration_hours ? parseFloat(s.duration_hours).toFixed(1) + 'h' : '—', s.instructor?.full_name || '—', s.location || '—', s.is_quarterly ? 'Yes' : 'No']
-      }),
-      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', fontSize: 9 },
-      bodyStyles: { fontSize: 8 },
-      alternateRowStyles: { fillColor: [245, 243, 255] },
-      columnStyles: { 1: { cellWidth: 35 }, 3: { cellWidth: 30 } }
+      body: exportSessions.map(s => { const c = CATEGORIES.find(x => x.id === s.category); return [formatDate(s.training_date), s.title, c?.label || s.category, s.topic, s.duration_hours ? parseFloat(s.duration_hours).toFixed(1) + 'h' : '—', s.instructor?.full_name || '—', s.location || '—', s.is_quarterly ? 'Yes' : 'No'] }),
+      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', fontSize: 9 }, bodyStyles: { fontSize: 8 }, alternateRowStyles: { fillColor: [245, 243, 255] }, columnStyles: { 1: { cellWidth: 35 }, 3: { cellWidth: 30 } }
     })
     const pageCount = doc.internal.getNumberOfPages()
     for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i)
-      doc.setFontSize(8)
-      doc.setTextColor(150, 150, 150)
+      doc.setPage(i); doc.setFontSize(8); doc.setTextColor(150, 150, 150)
       doc.text(`ResponseOS Training Report · Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 8)
       doc.text('responseos.net', doc.internal.pageSize.width - 14, doc.internal.pageSize.height - 8, { align: 'right' })
     }
@@ -420,11 +286,7 @@ export default function TrainingTracker() {
     showToast('Training report exported as PDF.')
   }
 
-  const inputStyle = {
-    width: '100%', padding: '9px 12px', borderRadius: 8,
-    border: '1px solid #E5E7EB', background: '#fff', color: '#111827',
-    fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none', transition: 'border-color .12s'
-  }
+  const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', color: '#111827', fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none', transition: 'border-color .12s' }
   const labelStyle = { fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 5, display: 'block' }
 
   return (
@@ -442,8 +304,7 @@ export default function TrainingTracker() {
                 <Target size={14} strokeWidth={2} /> Set goals
               </button>
             )}
-            <button className="btn btn-ghost" onClick={exportPDF} disabled={sessions.length === 0}
-              style={{ opacity: sessions.length === 0 ? 0.5 : 1 }}>
+            <button className="btn btn-ghost" onClick={() => setShowExportModal(true)} disabled={sessions.length === 0} style={{ opacity: sessions.length === 0 ? 0.5 : 1 }}>
               📄 Export PDF
             </button>
             <button className="btn btn-primary" onClick={() => setShowNew(true)}>
@@ -452,6 +313,42 @@ export default function TrainingTracker() {
           </div>
         }
       />
+
+      {/* Export modal */}
+      {showExportModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.15)', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#111827' }}>Export training report</div>
+              <button onClick={() => setShowExportModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}><X size={18} /></button>
+            </div>
+            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '.04em' }}>From date</label>
+                <input type="date" value={exportFrom} onChange={e => setExportFrom(e.target.value)} style={inputStyle} onFocus={e => e.target.style.borderColor = '#7C3AED'} onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '.04em' }}>To date</label>
+                <input type="date" value={exportTo} onChange={e => setExportTo(e.target.value)} style={inputStyle} onFocus={e => e.target.style.borderColor = '#7C3AED'} onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
+              </div>
+              <div style={{ background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#5B21B6', fontWeight: 600 }}>
+                {exportFiltered.length} session{exportFiltered.length !== 1 ? 's' : ''} · {exportHours.toFixed(1)}h
+                {(!exportFrom && !exportTo) && <span style={{ color: '#9CA3AF', fontWeight: 400 }}> (all time)</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
+                <button onClick={() => { setExportFrom(''); setExportTo('') }} style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 12, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>Clear dates</button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-ghost" onClick={() => setShowExportModal(false)}>Cancel</button>
+                  <button className="btn btn-primary" disabled={exportFiltered.length === 0} style={{ opacity: exportFiltered.length === 0 ? 0.5 : 1 }}
+                    onClick={() => { exportPDF(exportFiltered); setShowExportModal(false) }}>
+                    Export {exportFiltered.length} sessions →
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {behindCount > 0 && (
         <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -464,29 +361,40 @@ export default function TrainingTracker() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         {[
-          { label: 'Total sessions', value: sessions.length, color: '#7C3AED', icon: ClipboardList },
-          { label: 'Total hours', value: totalHours.toFixed(1) + 'h', color: '#059669', icon: Clock },
-          { label: 'This month', value: monthHours.toFixed(1) + 'h', color: '#D97706', icon: Award },
-          { label: 'This quarter', value: quarterHours.toFixed(1) + 'h', color: '#2563EB', icon: Target },
-        ].map(s => {
-          const Icon = s.icon
-          return (
-            <div key={s.label} className="card">
-              <div style={{ width: 36, height: 36, borderRadius: 9, background: `${s.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-                <Icon size={16} color={s.color} strokeWidth={2} />
-              </div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: s.color, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
-              <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>{s.label}</div>
+          { label: 'Total sessions', value: sessions.length,        color: '#7C3AED', Icon: ClipboardList },
+          { label: 'Total hours',    value: totalHours.toFixed(1) + 'h', color: '#059669', Icon: Clock },
+          { label: 'This month',     value: monthHours.toFixed(1) + 'h', color: '#D97706', Icon: Award },
+          { label: 'This quarter',   value: quarterHours.toFixed(1) + 'h', color: '#2563EB', Icon: Target },
+        ].map(s => (
+          <div key={s.label} className="card">
+            <div style={{ width: 36, height: 36, borderRadius: 9, background: `${s.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+              <s.Icon size={16} color={s.color} strokeWidth={2} />
             </div>
-          )
-        })}
+            <div style={{ fontSize: 28, fontWeight: 800, color: s.color, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
+            <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Category cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        {catStats.map(cat => (
+          <div key={cat.id} className="card" style={{ borderTop: `3px solid ${cat.color}`, cursor: 'pointer' }}
+            onClick={() => setFilter(filter === cat.id ? 'all' : cat.id)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: cat.bg, border: `1px solid ${cat.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <cat.Icon size={16} color={cat.color} strokeWidth={2} />
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{cat.label}</span>
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: cat.color }}>{cat.catHours.toFixed(1)}h</div>
+            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{cat.sessCount} sessions</div>
+          </div>
+        ))}
       </div>
 
       <div style={{ display: 'flex', gap: 4, background: '#F9FAFB', borderRadius: 10, padding: 4, border: '1px solid #E5E7EB', width: 'fit-content' }}>
-        {[
-          { id: 'sessions', label: 'Sessions' },
-          { id: 'progress', label: `Progress${behindCount > 0 ? ` (${behindCount} behind)` : ''}` },
-        ].map(t => (
+        {[{ id: 'sessions', label: 'Sessions' }, { id: 'progress', label: `Progress${behindCount > 0 ? ` (${behindCount} behind)` : ''}` }].map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
             padding: '7px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600,
             border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif',
@@ -498,6 +406,7 @@ export default function TrainingTracker() {
         ))}
       </div>
 
+      {/* Goals modal */}
       {showGoals && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 20px 60px rgba(0,0,0,0.15)', overflow: 'hidden' }}>
@@ -508,8 +417,10 @@ export default function TrainingTracker() {
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {CATEGORIES.map(cat => (
                 <div key={cat.id} style={{ background: cat.bg, border: `1px solid ${cat.border}`, borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    <span style={{ fontSize: 18 }}>{cat.icon}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fff', border: `1px solid ${cat.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <cat.Icon size={16} color={cat.color} strokeWidth={2} />
+                    </div>
                     <span style={{ fontSize: 14, fontWeight: 700, color: cat.color }}>{cat.label}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -530,24 +441,25 @@ export default function TrainingTracker() {
               ))}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button className="btn btn-ghost" onClick={() => setShowGoals(false)}>Cancel</button>
-                <button className="btn btn-primary" onClick={handleSaveGoals} disabled={savingGoals} style={{ opacity: savingGoals ? 0.6 : 1 }}>
-                  {savingGoals ? 'Saving...' : 'Save goals'}
-                </button>
+                <button className="btn btn-primary" onClick={handleSaveGoals} disabled={savingGoals} style={{ opacity: savingGoals ? 0.6 : 1 }}>{savingGoals ? 'Saving...' : 'Save goals'}</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* Progress tab */}
       {activeTab === 'progress' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           {catStats.map(cat => (
             <div key={cat.id} className="card" style={{ borderTop: `3px solid ${cat.color}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 24 }}>{cat.icon}</span>
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: cat.bg, border: `1px solid ${cat.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <cat.Icon size={18} color={cat.color} strokeWidth={2} />
+                </div>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>{cat.label}</div>
-                  <div style={{ fontSize: 11, color: '#9CA3AF' }}>{cat.sessCount} sessions total · {cat.catHours.toFixed(1)}h</div>
+                  <div style={{ fontSize: 11, color: '#9CA3AF' }}>{cat.sessCount} sessions · {cat.catHours.toFixed(1)}h</div>
                 </div>
                 {(cat.monthBehind || cat.qBehind) && (
                   <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: '#FEF3C7', borderRadius: 99, border: '1px solid #FDE68A' }}>
@@ -571,29 +483,22 @@ export default function TrainingTracker() {
         </div>
       )}
 
+      {/* Sessions tab */}
       {activeTab === 'sessions' && (
         <>
           {showNew && (
             <div className="card" style={{ borderTop: '3px solid #7C3AED' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#111827' }}>Log training session</div>
-                <button onClick={() => setShowNew(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}>
-                  <X size={18} />
-                </button>
+                <button onClick={() => setShowNew(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}><X size={18} /></button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
                   <label style={labelStyle}>Training category *</label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                     {CATEGORIES.map(c => (
-                      <button key={c.id} onClick={() => setF('category', c.id)} style={{
-                        padding: '10px', borderRadius: 8, cursor: 'pointer',
-                        border: `2px solid ${form.category === c.id ? c.color : '#E5E7EB'}`,
-                        background: form.category === c.id ? c.bg : '#fff',
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        fontFamily: 'Inter, sans-serif', transition: 'all .12s'
-                      }}>
-                        <span style={{ fontSize: 18 }}>{c.icon}</span>
+                      <button key={c.id} onClick={() => setF('category', c.id)} style={{ padding: '10px', borderRadius: 8, cursor: 'pointer', border: `2px solid ${form.category === c.id ? c.color : '#E5E7EB'}`, background: form.category === c.id ? c.bg : '#fff', display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Inter, sans-serif', transition: 'all .12s' }}>
+                        <c.Icon size={16} color={form.category === c.id ? c.color : '#9CA3AF'} strokeWidth={2} />
                         <span style={{ fontSize: 13, fontWeight: 600, color: form.category === c.id ? c.color : '#6B7280' }}>{c.label}</span>
                       </button>
                     ))}
@@ -602,10 +507,7 @@ export default function TrainingTracker() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label style={labelStyle}>Session title *</label>
-                    <input type="text" value={form.title} onChange={e => setF('title', e.target.value)}
-                      placeholder="e.g. SCBA Donning & Doffing Drill" style={inputStyle}
-                      onFocus={e => e.target.style.borderColor = '#7C3AED'}
-                      onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
+                    <input type="text" value={form.title} onChange={e => setF('title', e.target.value)} placeholder="e.g. SCBA Donning & Doffing Drill" style={inputStyle} onFocus={e => e.target.style.borderColor = '#7C3AED'} onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
                   </div>
                   <div>
                     <label style={labelStyle}>Topic *</label>
@@ -616,23 +518,10 @@ export default function TrainingTracker() {
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
-                  <div>
-                    <label style={labelStyle}>Date *</label>
-                    <input type="date" value={form.training_date} onChange={e => setF('training_date', e.target.value)} style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Start time</label>
-                    <input type="time" value={form.start_time} onChange={e => setF('start_time', e.target.value)} style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>End time</label>
-                    <input type="time" value={form.end_time} onChange={e => setF('end_time', e.target.value)} style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Duration (hrs)</label>
-                    <input type="number" step="0.25" min="0" value={form.duration_hours}
-                      onChange={e => setF('duration_hours', e.target.value)} placeholder="Auto" style={inputStyle} />
-                  </div>
+                  <div><label style={labelStyle}>Date *</label><input type="date" value={form.training_date} onChange={e => setF('training_date', e.target.value)} style={inputStyle} /></div>
+                  <div><label style={labelStyle}>Start time</label><input type="time" value={form.start_time} onChange={e => setF('start_time', e.target.value)} style={inputStyle} /></div>
+                  <div><label style={labelStyle}>End time</label><input type="time" value={form.end_time} onChange={e => setF('end_time', e.target.value)} style={inputStyle} /></div>
+                  <div><label style={labelStyle}>Duration (hrs)</label><input type="number" step="0.25" min="0" value={form.duration_hours} onChange={e => setF('duration_hours', e.target.value)} placeholder="Auto" style={inputStyle} /></div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
@@ -644,48 +533,25 @@ export default function TrainingTracker() {
                   </div>
                   <div>
                     <label style={labelStyle}>Location</label>
-                    <input type="text" value={form.location} onChange={e => setF('location', e.target.value)}
-                      placeholder="e.g. Station 4, Training Bay" style={inputStyle}
-                      onFocus={e => e.target.style.borderColor = '#7C3AED'}
-                      onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
+                    <input type="text" value={form.location} onChange={e => setF('location', e.target.value)} placeholder="e.g. Station 4, Training Bay" style={inputStyle} onFocus={e => e.target.style.borderColor = '#7C3AED'} onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: '#F9FAFB', borderRadius: 8, border: '1px solid #E5E7EB' }}>
-                  <input type="checkbox" id="quarterly" checked={form.is_quarterly}
-                    onChange={e => setF('is_quarterly', e.target.checked)}
-                    style={{ width: 16, height: 16, accentColor: '#7C3AED' }} />
-                  <label htmlFor="quarterly" style={{ fontSize: 13, fontWeight: 600, color: '#111827', cursor: 'pointer' }}>
-                    This is a quarterly third-party training session
-                  </label>
+                  <input type="checkbox" id="quarterly" checked={form.is_quarterly} onChange={e => setF('is_quarterly', e.target.checked)} style={{ width: 16, height: 16, accentColor: '#7C3AED' }} />
+                  <label htmlFor="quarterly" style={{ fontSize: 13, fontWeight: 600, color: '#111827', cursor: 'pointer' }}>This is a quarterly third-party training session</label>
                 </div>
                 {form.is_quarterly && (
                   <div>
                     <label style={labelStyle}>Third-party provider</label>
-                    <input type="text" value={form.third_party_provider} onChange={e => setF('third_party_provider', e.target.value)}
-                      placeholder="e.g. Texas Fire Training Institute" style={inputStyle}
-                      onFocus={e => e.target.style.borderColor = '#7C3AED'}
-                      onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
+                    <input type="text" value={form.third_party_provider} onChange={e => setF('third_party_provider', e.target.value)} placeholder="e.g. Texas Fire Training Institute" style={inputStyle} onFocus={e => e.target.style.borderColor = '#7C3AED'} onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
                   </div>
                 )}
                 <div>
                   <label style={labelStyle}>Participants ({form.participants.length} selected)</label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, maxHeight: 160, overflowY: 'auto', padding: 4 }}>
                     {users.map(u => (
-                      <div key={u.id} onClick={() => toggleParticipant(u.id)} style={{
-                        padding: '7px 10px', borderRadius: 7, cursor: 'pointer',
-                        border: `1.5px solid ${form.participants.includes(u.id) ? '#7C3AED' : '#E5E7EB'}`,
-                        background: form.participants.includes(u.id) ? '#F5F3FF' : '#fff',
-                        fontSize: 12, fontWeight: 500,
-                        color: form.participants.includes(u.id) ? '#7C3AED' : '#374151',
-                        transition: 'all .12s', userSelect: 'none',
-                        display: 'flex', alignItems: 'center', gap: 6
-                      }}>
-                        <div style={{
-                          width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                          background: form.participants.includes(u.id) ? '#7C3AED' : '#E5E7EB',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 9, color: form.participants.includes(u.id) ? '#fff' : '#9CA3AF', fontWeight: 700
-                        }}>
+                      <div key={u.id} onClick={() => toggleParticipant(u.id)} style={{ padding: '7px 10px', borderRadius: 7, cursor: 'pointer', border: `1.5px solid ${form.participants.includes(u.id) ? '#7C3AED' : '#E5E7EB'}`, background: form.participants.includes(u.id) ? '#F5F3FF' : '#fff', fontSize: 12, fontWeight: 500, color: form.participants.includes(u.id) ? '#7C3AED' : '#374151', transition: 'all .12s', userSelect: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, background: form.participants.includes(u.id) ? '#7C3AED' : '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: form.participants.includes(u.id) ? '#fff' : '#9CA3AF', fontWeight: 700 }}>
                           {u.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                         </div>
                         {u.full_name?.split(' ')[0]}
@@ -695,34 +561,24 @@ export default function TrainingTracker() {
                 </div>
                 <div>
                   <label style={labelStyle}>Notes</label>
-                  <textarea value={form.notes} onChange={e => setF('notes', e.target.value)}
-                    rows={3} placeholder="Training objectives, observations, follow-up items..."
-                    style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
-                    onFocus={e => e.target.style.borderColor = '#7C3AED'}
-                    onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
+                  <textarea value={form.notes} onChange={e => setF('notes', e.target.value)} rows={3} placeholder="Training objectives, observations, follow-up items..." style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} onFocus={e => e.target.style.borderColor = '#7C3AED'} onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                   <button className="btn btn-ghost" onClick={() => setShowNew(false)}>Cancel</button>
-                  <button className="btn btn-primary" onClick={handleSubmit} disabled={saving} style={{ opacity: saving ? 0.6 : 1 }}>
-                    {saving ? 'Saving...' : 'Log session →'}
-                  </button>
+                  <button className="btn btn-primary" onClick={handleSubmit} disabled={saving} style={{ opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : 'Log session →'}</button>
                 </div>
               </div>
             </div>
           )}
 
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[{ id: 'all', label: 'All sessions' }, ...CATEGORIES].map(f => (
-              <button key={f.id} onClick={() => setFilter(f.id)} style={{
-                padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600,
-                border: `1.5px solid ${filter === f.id ? '#7C3AED' : '#E5E7EB'}`,
-                background: filter === f.id ? '#F5F3FF' : '#fff',
-                color: filter === f.id ? '#7C3AED' : '#6B7280',
-                cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-                display: 'flex', alignItems: 'center', gap: 5
-              }}>
-                {'icon' in f && <span>{f.icon}</span>}
-                {f.label}
+            <button onClick={() => setFilter('all')} style={{ padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: `1.5px solid ${filter === 'all' ? '#7C3AED' : '#E5E7EB'}`, background: filter === 'all' ? '#F5F3FF' : '#fff', color: filter === 'all' ? '#7C3AED' : '#6B7280', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+              All sessions
+            </button>
+            {CATEGORIES.map(c => (
+              <button key={c.id} onClick={() => setFilter(filter === c.id ? 'all' : c.id)} style={{ padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: `1.5px solid ${filter === c.id ? c.color : '#E5E7EB'}`, background: filter === c.id ? c.bg : '#fff', color: filter === c.id ? c.color : '#6B7280', cursor: 'pointer', fontFamily: 'Inter, sans-serif', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <c.Icon size={13} color={filter === c.id ? c.color : '#9CA3AF'} strokeWidth={2} />
+                {c.label}
               </button>
             ))}
           </div>
@@ -740,17 +596,12 @@ export default function TrainingTracker() {
               {filtered.map(s => {
                 const c = CATEGORIES.find(x => x.id === s.category) || CATEGORIES[0]
                 const expanded = expandedId === s.id
-                const participantNames = (s.participants || []).map(pid => {
-                  const u = users.find(u => u.id === pid)
-                  return u?.full_name || ''
-                }).filter(Boolean)
-
+                const participantNames = (s.participants || []).map(pid => { const u = users.find(u => u.id === pid); return u?.full_name || '' }).filter(Boolean)
                 return (
                   <div key={s.id} className="card" style={{ padding: 0, overflow: 'hidden', borderLeft: `4px solid ${c.color}` }}>
-                    <div style={{ padding: '14px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}
-                      onClick={() => setExpandedId(expanded ? null : s.id)}>
-                      <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, border: `1px solid ${c.border}` }}>
-                        {c.icon}
+                    <div style={{ padding: '14px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }} onClick={() => setExpandedId(expanded ? null : s.id)}>
+                      <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${c.border}` }}>
+                        <c.Icon size={18} color={c.color} strokeWidth={2} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -766,15 +617,8 @@ export default function TrainingTracker() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <button onClick={e => { e.stopPropagation(); exportSessionPDF(s) }}
-                          style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #DDD6FE', background: '#F5F3FF', color: '#7C3AED', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                          📄 PDF
-                        </button>
-                        <button onClick={e => { e.stopPropagation(); handleDelete(s.id) }}
-                          disabled={deleting === s.id}
-                          style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', color: '#DC2626', fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: deleting === s.id ? 0.5 : 1 }}>
-                          {deleting === s.id ? '...' : 'Delete'}
-                        </button>
+                        <button onClick={e => { e.stopPropagation(); exportSessionPDF(s) }} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #DDD6FE', background: '#F5F3FF', color: '#7C3AED', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>📄 PDF</button>
+                        <button onClick={e => { e.stopPropagation(); handleDelete(s.id) }} disabled={deleting === s.id} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', color: '#DC2626', fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: deleting === s.id ? 0.5 : 1 }}>{deleting === s.id ? '...' : 'Delete'}</button>
                         {expanded ? <ChevronUp size={16} color="#9CA3AF" /> : <ChevronDown size={16} color="#9CA3AF" />}
                       </div>
                     </div>
@@ -802,9 +646,7 @@ export default function TrainingTracker() {
                           <div style={{ marginTop: 12 }}>
                             <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Participants</div>
                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                              {participantNames.map(name => (
-                                <span key={name} style={{ padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 500, background: '#F5F3FF', color: '#7C3AED', border: '1px solid #DDD6FE' }}>{name}</span>
-                              ))}
+                              {participantNames.map(name => <span key={name} style={{ padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 500, background: '#F5F3FF', color: '#7C3AED', border: '1px solid #DDD6FE' }}>{name}</span>)}
                             </div>
                           </div>
                         )}
