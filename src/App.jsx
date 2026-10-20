@@ -4,7 +4,7 @@ import { AnimatePresence } from 'framer-motion'
 import { supabase } from './lib/supabase'
 import {
   LayoutDashboard, ShieldCheck, CheckSquare, Bell,
-  Bot, ScrollText, FolderLock, Users, User, ClipboardList
+  Bot, ScrollText, FolderLock, Users, User, ClipboardList, Shield
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import Certifications from './pages/Certifications'
@@ -16,6 +16,7 @@ import UsersPage from './pages/Users'
 import Profile from './pages/Profile'
 import DocumentVault from './pages/DocumentVault'
 import TrainingTracker from './pages/TrainingTracker'
+import Admin from './pages/Admin'
 import Login from './pages/Login'
 import Landing from './pages/Landing'
 import Quote from './pages/Quote'
@@ -42,6 +43,12 @@ const NAV_ADMIN = [
   { to: '/users',   icon: Users,      label: 'Users'          },
 ]
 
+const NAV_SUPER = [
+  { to: '/admin',   icon: Shield,     label: 'Admin Panel'    },
+]
+
+const SUPER_EMAILS = ['jlane@responseos.net', 'hseals@responseos.net']
+
 function AnimatedRoutes() {
   const location = useLocation()
   return (
@@ -57,6 +64,7 @@ function AnimatedRoutes() {
         <Route path="/docs"      element={<PageTransition><DocumentVault /></PageTransition>} />
         <Route path="/users"     element={<PageTransition><UsersPage /></PageTransition>} />
         <Route path="/profile"   element={<PageTransition><Profile /></PageTransition>} />
+        <Route path="/admin"     element={<PageTransition><Admin /></PageTransition>} />
       </Routes>
     </AnimatePresence>
   )
@@ -79,10 +87,7 @@ function DemoBanner({ user }) {
         <span>🚀</span>
         <span>Demo mode — <strong>{daysLeft} days</strong> remaining</span>
       </div>
-      <a href="/quote" style={{
-        padding: '4px 12px', background: '#fff', color: '#7C3AED',
-        borderRadius: 6, fontSize: 11, fontWeight: 700, textDecoration: 'none'
-      }}>Upgrade →</a>
+      <a href="/quote" style={{ padding: '4px 12px', background: '#fff', color: '#7C3AED', borderRadius: 6, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>Upgrade →</a>
     </div>
   )
 }
@@ -90,7 +95,12 @@ function DemoBanner({ user }) {
 function AppShell({ user, handleLogout }) {
   const [showOnboarding, setShowOnboarding] = useState(user?.onboarded === false)
   const isAdminOrAuditor = ['admin', 'auditor'].includes(user?.role)
-  const NAV = [...NAV_ALL, ...(isAdminOrAuditor ? NAV_ADMIN : [])]
+  const isSuper = SUPER_EMAILS.includes(user?.email)
+  const NAV = [
+    ...NAV_ALL,
+    ...(isAdminOrAuditor ? NAV_ADMIN : []),
+    ...(isSuper ? NAV_SUPER : []),
+  ]
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
@@ -109,25 +119,18 @@ function AppShell({ user, handleLogout }) {
         boxShadow: '4px 0 24px rgba(0,0,0,0.2)',
         position: 'relative', overflow: 'hidden'
       }}>
-        {/* Sidebar purple underglow */}
+        {/* Purple underglow */}
         <div style={{
-          position: 'absolute', bottom: -40, left: -40, right: -40,
-          height: 200, pointerEvents: 'none',
+          position: 'absolute', bottom: -40, left: -40, right: -40, height: 200,
+          pointerEvents: 'none',
           background: 'radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.3) 0%, transparent 70%)',
           zIndex: 0
         }} />
 
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
-          {/* Logo — white version */}
+          {/* Logo */}
           <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-            <img
-              src="/logo.png"
-              alt="ResponseOS"
-              style={{
-                width: '100%', height: 52, objectFit: 'contain', objectPosition: 'left',
-                filter: 'brightness(0) invert(1)'
-              }}
-            />
+            <img src="/logo.png" alt="ResponseOS" style={{ width: '100%', height: 52, objectFit: 'contain', objectPosition: 'left', filter: 'brightness(0) invert(1)' }} />
           </div>
 
           {/* Nav */}
@@ -161,9 +164,7 @@ function AppShell({ user, handleLogout }) {
                         <Icon size={15} color={isActive ? '#fff' : '#A78BFA'} strokeWidth={2} />
                       </div>
                       <span style={{ flex: 1 }}>{n.label}</span>
-                      {isActive && (
-                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff', opacity: 0.6 }} />
-                      )}
+                      {isActive && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff', opacity: 0.6 }} />}
                     </>
                   )}
                 </NavLink>
@@ -181,68 +182,31 @@ function AppShell({ user, handleLogout }) {
               border: '1px solid rgba(255,255,255,0.08)',
               boxShadow: isActive ? '0 2px 12px rgba(124,58,237,0.4)' : 'none'
             })}>
-              <div style={{
-                width: 30, height: 30, borderRadius: '8px',
-                background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
-                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 11, fontWeight: 700, flexShrink: 0,
-                boxShadow: '0 0 10px rgba(124,58,237,0.5)'
-              }}>
+              <div style={{ width: 30, height: 30, borderRadius: '8px', background: 'linear-gradient(135deg, #7C3AED, #5B21B6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0, boxShadow: '0 0 10px rgba(124,58,237,0.5)' }}>
                 {user.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {user.full_name}
-                </div>
-                <div style={{ fontSize: 11, color: '#A78BFA', fontWeight: 700 }}>
-                  {user.role.toUpperCase()}
-                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.full_name}</div>
+                <div style={{ fontSize: 11, color: '#A78BFA', fontWeight: 700 }}>{user.role.toUpperCase()}</div>
               </div>
             </NavLink>
-            <button onClick={handleLogout} style={{
-              width: '100%', padding: '8px', borderRadius: '8px',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 500,
-              cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all .12s'
-            }}
+            <button onClick={handleLogout} style={{ width: '100%', padding: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all .12s' }}
               onMouseOver={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
-              onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-            >Sign out</button>
+              onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}>
+              Sign out
+            </button>
           </div>
         </div>
       </aside>
 
       {/* Main content */}
-      <main style={{
-        flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column',
-        background: 'var(--bg)', position: 'relative', zIndex: 1
-      }}>
-        {/* Purple underglow */}
-        <div style={{
-          position: 'fixed', bottom: 0, left: 240, right: 0, height: '40vh',
-          background: 'radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.07) 0%, transparent 70%)',
-          pointerEvents: 'none', zIndex: 0
-        }} />
-        <div style={{
-          position: 'fixed', top: 0, left: 240, right: 0, height: '30vh',
-          background: 'radial-gradient(ellipse at 70% 0%, rgba(139,92,246,0.04) 0%, transparent 70%)',
-          pointerEvents: 'none', zIndex: 0
-        }} />
+      <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg)', position: 'relative', zIndex: 1 }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 240, right: 0, height: '40vh', background: 'radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.07) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'fixed', top: 0, left: 240, right: 0, height: '30vh', background: 'radial-gradient(ellipse at 70% 0%, rgba(139,92,246,0.04) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
 
         <DemoBanner user={user} />
 
-        {/* Top bar */}
-        <div style={{
-          padding: '12px 20px',
-          borderBottom: '1px solid rgba(139,92,246,0.1)',
-          background: 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center',
-          justifyContent: 'flex-end', gap: 10, flexShrink: 0,
-          boxShadow: '0 1px 12px rgba(139,92,246,0.07)',
-          position: 'relative', zIndex: 2
-        }}>
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(139,92,246,0.1)', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexShrink: 0, boxShadow: '0 1px 12px rgba(139,92,246,0.07)', position: 'relative', zIndex: 2 }}>
           <Search />
           <NotificationBell />
         </div>
@@ -259,16 +223,13 @@ function AppShell({ user, handleLogout }) {
             const Icon = n.icon
             return (
               <NavLink key={n.to} to={n.to} end={n.to === '/'}
-                className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
-              >
+                className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
                 <Icon size={22} strokeWidth={1.8} />
                 <span>{n.label.split(' ')[0]}</span>
               </NavLink>
             )
           })}
-          <NavLink to="/profile"
-            className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
-          >
+          <NavLink to="/profile" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
             <User size={22} strokeWidth={1.8} />
             <span>Profile</span>
           </NavLink>
@@ -288,8 +249,7 @@ export default function App() {
         const { data: profile } = await supabase
           .from('users')
           .select('id, full_name, email, role, department, is_active, avatar_url, onboarded, is_demo, demo_expires_at, demo_company')
-          .eq('id', session.user.id)
-          .single()
+          .eq('id', session.user.id).single()
         if (profile) setUser(profile)
       }
       setLoading(false)
@@ -301,8 +261,7 @@ export default function App() {
         const { data: profile } = await supabase
           .from('users')
           .select('id, full_name, email, role, department, is_active, avatar_url, onboarded, is_demo, demo_expires_at, demo_company')
-          .eq('id', session.user.id)
-          .single()
+          .eq('id', session.user.id).single()
         if (profile) setUser(profile)
       }
     })
@@ -319,15 +278,8 @@ export default function App() {
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F5F3FF' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <img src="/logo.png" alt="ResponseOS" style={{ height: 52, objectFit: 'contain', marginBottom: 4 }} />
-        <div style={{
-          width: 36, height: 36, borderRadius: '50%',
-          border: '3px solid #EDE9FF', borderTopColor: '#7C3AED',
-          animation: 'spin 0.8s linear infinite',
-          boxShadow: '0 0 16px rgba(124,58,237,0.2)'
-        }} />
-        <div style={{ fontSize: 12, color: '#8B7ABB', fontFamily: 'Inter, sans-serif', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>
-          Loading
-        </div>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #EDE9FF', borderTopColor: '#7C3AED', animation: 'spin 0.8s linear infinite', boxShadow: '0 0 16px rgba(124,58,237,0.2)' }} />
+        <div style={{ fontSize: 12, color: '#8B7ABB', fontFamily: 'Inter, sans-serif', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>Loading</div>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
