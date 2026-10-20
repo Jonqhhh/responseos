@@ -4,7 +4,7 @@ import { AnimatePresence } from 'framer-motion'
 import { supabase } from './lib/supabase'
 import {
   LayoutDashboard, ShieldCheck, CheckSquare, Bell,
-  Bot, ScrollText, FolderLock, Users, User, ClipboardList, Shield
+  Bot, ScrollText, FolderLock, Users, User, ClipboardList, Shield, Building
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import Certifications from './pages/Certifications'
@@ -17,6 +17,7 @@ import Profile from './pages/Profile'
 import DocumentVault from './pages/DocumentVault'
 import TrainingTracker from './pages/TrainingTracker'
 import Admin from './pages/Admin'
+import CompanyProfile from './pages/CompanyProfile'
 import Login from './pages/Login'
 import Landing from './pages/Landing'
 import Quote from './pages/Quote'
@@ -29,22 +30,23 @@ import OnboardingWizard from './components/OnboardingWizard'
 import './index.css'
 
 const NAV_ALL = [
-  { to: '/',          icon: LayoutDashboard, label: 'Dashboard'      },
-  { to: '/certs',     icon: ShieldCheck,     label: 'Certifications' },
-  { to: '/tasks',     icon: CheckSquare,     label: 'Tasks'          },
-  { to: '/training',  icon: ClipboardList,   label: 'Training'       },
-  { to: '/alerts',    icon: Bell,            label: 'Alerts'         },
-  { to: '/ai',        icon: Bot,             label: 'AI Assistant'   },
-  { to: '/audit',     icon: ScrollText,      label: 'Audit Log'      },
+  { to: '/',         icon: LayoutDashboard, label: 'Dashboard'      },
+  { to: '/certs',    icon: ShieldCheck,     label: 'Certifications' },
+  { to: '/tasks',    icon: CheckSquare,     label: 'Tasks'          },
+  { to: '/training', icon: ClipboardList,   label: 'Training'       },
+  { to: '/alerts',   icon: Bell,            label: 'Alerts'         },
+  { to: '/ai',       icon: Bot,             label: 'AI Assistant'   },
+  { to: '/audit',    icon: ScrollText,      label: 'Audit Log'      },
 ]
 
 const NAV_ADMIN = [
   { to: '/docs',    icon: FolderLock, label: 'Document Vault' },
   { to: '/users',   icon: Users,      label: 'Users'          },
+  { to: '/company', icon: Building,   label: 'Company'        },
 ]
 
 const NAV_SUPER = [
-  { to: '/admin',   icon: Shield,     label: 'Admin Panel'    },
+  { to: '/admin', icon: Shield, label: 'Admin Panel' },
 ]
 
 const SUPER_EMAILS = ['jlane@responseos.net', 'hseals@responseos.net']
@@ -54,17 +56,18 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/"          element={<PageTransition><Dashboard /></PageTransition>} />
-        <Route path="/certs"     element={<PageTransition><Certifications /></PageTransition>} />
-        <Route path="/tasks"     element={<PageTransition><Tasks /></PageTransition>} />
-        <Route path="/training"  element={<PageTransition><TrainingTracker /></PageTransition>} />
-        <Route path="/alerts"    element={<PageTransition><Alerts /></PageTransition>} />
-        <Route path="/ai"        element={<PageTransition><AIAssistant /></PageTransition>} />
-        <Route path="/audit"     element={<PageTransition><AuditLog /></PageTransition>} />
-        <Route path="/docs"      element={<PageTransition><DocumentVault /></PageTransition>} />
-        <Route path="/users"     element={<PageTransition><UsersPage /></PageTransition>} />
-        <Route path="/profile"   element={<PageTransition><Profile /></PageTransition>} />
-        <Route path="/admin"     element={<PageTransition><Admin /></PageTransition>} />
+        <Route path="/"        element={<PageTransition><Dashboard /></PageTransition>} />
+        <Route path="/certs"   element={<PageTransition><Certifications /></PageTransition>} />
+        <Route path="/tasks"   element={<PageTransition><Tasks /></PageTransition>} />
+        <Route path="/training" element={<PageTransition><TrainingTracker /></PageTransition>} />
+        <Route path="/alerts"  element={<PageTransition><Alerts /></PageTransition>} />
+        <Route path="/ai"      element={<PageTransition><AIAssistant /></PageTransition>} />
+        <Route path="/audit"   element={<PageTransition><AuditLog /></PageTransition>} />
+        <Route path="/docs"    element={<PageTransition><DocumentVault /></PageTransition>} />
+        <Route path="/users"   element={<PageTransition><UsersPage /></PageTransition>} />
+        <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
+        <Route path="/admin"   element={<PageTransition><Admin /></PageTransition>} />
+        <Route path="/company" element={<PageTransition><CompanyProfile /></PageTransition>} />
       </Routes>
     </AnimatePresence>
   )
@@ -76,13 +79,7 @@ function DemoBanner({ user }) {
     ? Math.max(0, Math.ceil((new Date(user.demo_expires_at) - Date.now()) / (1000 * 60 * 60 * 24)))
     : 14
   return (
-    <div style={{
-      background: 'linear-gradient(90deg, #7C3AED, #5B21B6)',
-      padding: '8px 20px',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      flexShrink: 0, zIndex: 10,
-      borderBottom: '1px solid rgba(139,92,246,0.2)'
-    }}>
+    <div style={{ background: 'linear-gradient(90deg, #7C3AED, #5B21B6)', padding: '8px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, zIndex: 10, borderBottom: '1px solid rgba(139,92,246,0.2)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#EDE9FF', fontWeight: 600 }}>
         <span>🚀</span>
         <span>Demo mode — <strong>{daysLeft} days</strong> remaining</span>
@@ -105,62 +102,35 @@ function AppShell({ user, handleLogout }) {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
 
-      {showOnboarding && (
-        <OnboardingWizard user={user} onComplete={() => setShowOnboarding(false)} />
-      )}
+      {showOnboarding && <OnboardingWizard user={user} onComplete={() => setShowOnboarding(false)} />}
 
-      {/* Dark sidebar */}
-      <aside style={{
-        width: 240, flexShrink: 0, zIndex: 10,
-        display: 'flex', flexDirection: 'column',
-        padding: '0 0 20px',
-        background: '#13082A',
-        borderRight: '1px solid rgba(139,92,246,0.2)',
-        boxShadow: '4px 0 24px rgba(0,0,0,0.2)',
-        position: 'relative', overflow: 'hidden'
-      }}>
-        {/* Purple underglow */}
-        <div style={{
-          position: 'absolute', bottom: -40, left: -40, right: -40, height: 200,
-          pointerEvents: 'none',
-          background: 'radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.3) 0%, transparent 70%)',
-          zIndex: 0
-        }} />
+      <aside style={{ width: 240, flexShrink: 0, zIndex: 10, display: 'flex', flexDirection: 'column', padding: '0 0 20px', background: '#13082A', borderRight: '1px solid rgba(139,92,246,0.2)', boxShadow: '4px 0 24px rgba(0,0,0,0.2)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', bottom: -40, left: -40, right: -40, height: 200, pointerEvents: 'none', background: 'radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.3) 0%, transparent 70%)', zIndex: 0 }} />
 
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
-          {/* Logo */}
           <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             <img src="/logo.png" alt="ResponseOS" style={{ width: '100%', height: 52, objectFit: 'contain', objectPosition: 'left', filter: 'brightness(0) invert(1)' }} />
           </div>
 
-          {/* Nav */}
           <nav style={{ flex: 1, padding: '8px 12px', overflowY: 'auto' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '.1em', textTransform: 'uppercase', padding: '6px 8px', marginBottom: 4 }}>
-              Platform
-            </div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '.1em', textTransform: 'uppercase', padding: '6px 8px', marginBottom: 4 }}>Platform</div>
             {NAV.map(n => {
               const Icon = n.icon
               return (
                 <NavLink key={n.to} to={n.to} end={n.to === '/'}
                   style={({ isActive }) => ({
                     display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '7px 10px', borderRadius: '10px',
-                    marginBottom: 2, textDecoration: 'none',
-                    fontSize: 13, fontWeight: isActive ? 700 : 500,
+                    padding: '7px 10px', borderRadius: '10px', marginBottom: 2,
+                    textDecoration: 'none', fontSize: 13,
+                    fontWeight: isActive ? 700 : 500,
                     color: isActive ? '#fff' : 'rgba(255,255,255,0.5)',
                     background: isActive ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : 'transparent',
                     boxShadow: isActive ? '0 2px 12px rgba(124,58,237,0.5)' : 'none',
                     transition: 'all .12s'
-                  })}
-                >
+                  })}>
                   {({ isActive }) => (
                     <>
-                      <div style={{
-                        width: 30, height: 30, borderRadius: '8px', flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: isActive ? 'rgba(255,255,255,0.15)' : 'rgba(139,92,246,0.2)',
-                        transition: 'all .12s'
-                      }}>
+                      <div style={{ width: 30, height: 30, borderRadius: '8px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isActive ? 'rgba(255,255,255,0.15)' : 'rgba(139,92,246,0.2)', transition: 'all .12s' }}>
                         <Icon size={15} color={isActive ? '#fff' : '#A78BFA'} strokeWidth={2} />
                       </div>
                       <span style={{ flex: 1 }}>{n.label}</span>
@@ -172,16 +142,8 @@ function AppShell({ user, handleLogout }) {
             })}
           </nav>
 
-          {/* Profile + sign out */}
           <div style={{ padding: '0 12px' }}>
-            <NavLink to="/profile" style={({ isActive }) => ({
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '7px 10px', borderRadius: '10px',
-              background: isActive ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : 'rgba(255,255,255,0.06)',
-              textDecoration: 'none', marginBottom: 8, transition: 'all .12s',
-              border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: isActive ? '0 2px 12px rgba(124,58,237,0.4)' : 'none'
-            })}>
+            <NavLink to="/profile" style={({ isActive }) => ({ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: '10px', background: isActive ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : 'rgba(255,255,255,0.06)', textDecoration: 'none', marginBottom: 8, transition: 'all .12s', border: '1px solid rgba(255,255,255,0.08)', boxShadow: isActive ? '0 2px 12px rgba(124,58,237,0.4)' : 'none' })}>
               <div style={{ width: 30, height: 30, borderRadius: '8px', background: 'linear-gradient(135deg, #7C3AED, #5B21B6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0, boxShadow: '0 0 10px rgba(124,58,237,0.5)' }}>
                 {user.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </div>
@@ -199,24 +161,19 @@ function AppShell({ user, handleLogout }) {
         </div>
       </aside>
 
-      {/* Main content */}
       <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg)', position: 'relative', zIndex: 1 }}>
         <div style={{ position: 'fixed', bottom: 0, left: 240, right: 0, height: '40vh', background: 'radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.07) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
         <div style={{ position: 'fixed', top: 0, left: 240, right: 0, height: '30vh', background: 'radial-gradient(ellipse at 70% 0%, rgba(139,92,246,0.04) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
-
         <DemoBanner user={user} />
-
         <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(139,92,246,0.1)', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexShrink: 0, boxShadow: '0 1px 12px rgba(139,92,246,0.07)', position: 'relative', zIndex: 2 }}>
           <Search />
           <NotificationBell />
         </div>
-
         <div style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch', position: 'relative', zIndex: 1 }}>
           <AnimatedRoutes />
         </div>
       </main>
 
-      {/* Mobile bottom nav */}
       <nav className="bottom-nav">
         <div className="bottom-nav-inner">
           {NAV_ALL.slice(0, 5).map(n => {
@@ -246,10 +203,7 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('id, full_name, email, role, department, is_active, avatar_url, onboarded, is_demo, demo_expires_at, demo_company')
-          .eq('id', session.user.id).single()
+        const { data: profile } = await supabase.from('users').select('id, full_name, email, role, department, is_active, avatar_url, onboarded, is_demo, demo_expires_at, demo_company').eq('id', session.user.id).single()
         if (profile) setUser(profile)
       }
       setLoading(false)
@@ -258,10 +212,7 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') setUser(null)
       if (event === 'SIGNED_IN' && session) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('id, full_name, email, role, department, is_active, avatar_url, onboarded, is_demo, demo_expires_at, demo_company')
-          .eq('id', session.user.id).single()
+        const { data: profile } = await supabase.from('users').select('id, full_name, email, role, department, is_active, avatar_url, onboarded, is_demo, demo_expires_at, demo_company').eq('id', session.user.id).single()
         if (profile) setUser(profile)
       }
     })
