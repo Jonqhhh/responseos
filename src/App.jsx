@@ -19,6 +19,7 @@ import TrainingTracker from './pages/TrainingTracker'
 import Admin from './pages/Admin'
 import CompanyProfile from './pages/CompanyProfile'
 import Login from './pages/Login'
+import ResetPassword from './pages/ResetPassword'
 import Landing from './pages/Landing'
 import Quote from './pages/Quote'
 import Hardware from './pages/Hardware'
@@ -50,24 +51,25 @@ const NAV_SUPER = [
 ]
 
 const SUPER_EMAILS = ['jlane@responseos.net', 'hseals@responseos.net']
+const PROFILE_FIELDS = 'id, full_name, email, role, department, is_active, avatar_url, onboarded, is_demo, demo_expires_at, demo_company'
 
 function AnimatedRoutes() {
   const location = useLocation()
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/"        element={<PageTransition><Dashboard /></PageTransition>} />
-        <Route path="/certs"   element={<PageTransition><Certifications /></PageTransition>} />
-        <Route path="/tasks"   element={<PageTransition><Tasks /></PageTransition>} />
+        <Route path="/"         element={<PageTransition><Dashboard /></PageTransition>} />
+        <Route path="/certs"    element={<PageTransition><Certifications /></PageTransition>} />
+        <Route path="/tasks"    element={<PageTransition><Tasks /></PageTransition>} />
         <Route path="/training" element={<PageTransition><TrainingTracker /></PageTransition>} />
-        <Route path="/alerts"  element={<PageTransition><Alerts /></PageTransition>} />
-        <Route path="/ai"      element={<PageTransition><AIAssistant /></PageTransition>} />
-        <Route path="/audit"   element={<PageTransition><AuditLog /></PageTransition>} />
-        <Route path="/docs"    element={<PageTransition><DocumentVault /></PageTransition>} />
-        <Route path="/users"   element={<PageTransition><UsersPage /></PageTransition>} />
-        <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
-        <Route path="/admin"   element={<PageTransition><Admin /></PageTransition>} />
-        <Route path="/company" element={<PageTransition><CompanyProfile /></PageTransition>} />
+        <Route path="/alerts"   element={<PageTransition><Alerts /></PageTransition>} />
+        <Route path="/ai"       element={<PageTransition><AIAssistant /></PageTransition>} />
+        <Route path="/audit"    element={<PageTransition><AuditLog /></PageTransition>} />
+        <Route path="/docs"     element={<PageTransition><DocumentVault /></PageTransition>} />
+        <Route path="/users"    element={<PageTransition><UsersPage /></PageTransition>} />
+        <Route path="/profile"  element={<PageTransition><Profile /></PageTransition>} />
+        <Route path="/admin"    element={<PageTransition><Admin /></PageTransition>} />
+        <Route path="/company"  element={<PageTransition><CompanyProfile /></PageTransition>} />
       </Routes>
     </AnimatePresence>
   )
@@ -203,7 +205,7 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        const { data: profile } = await supabase.from('users').select('id, full_name, email, role, department, is_active, avatar_url, onboarded, is_demo, demo_expires_at, demo_company').eq('id', session.user.id).single()
+        const { data: profile } = await supabase.from('users').select(PROFILE_FIELDS).eq('id', session.user.id).single()
         if (profile) setUser(profile)
       }
       setLoading(false)
@@ -212,7 +214,7 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') setUser(null)
       if (event === 'SIGNED_IN' && session) {
-        const { data: profile } = await supabase.from('users').select('id, full_name, email, role, department, is_active, avatar_url, onboarded, is_demo, demo_expires_at, demo_company').eq('id', session.user.id).single()
+        const { data: profile } = await supabase.from('users').select(PROFILE_FIELDS).eq('id', session.user.id).single()
         if (profile) setUser(profile)
       }
     })
@@ -239,12 +241,13 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/home"     element={<Landing />} />
-        <Route path="/login"    element={user ? <Navigate to="/" /> : <Login onLogin={setUser} />} />
-        <Route path="/quote"    element={<Quote />} />
-        <Route path="/hardware" element={<Hardware />} />
-        <Route path="/demo"     element={<Demo />} />
-        <Route path="/*"        element={user ? <AppShell user={user} handleLogout={handleLogout} /> : <Navigate to="/home" />} />
+        <Route path="/home"           element={<Landing />} />
+        <Route path="/login"          element={user ? <Navigate to="/" /> : <Login onLogin={setUser} />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/quote"          element={<Quote />} />
+        <Route path="/hardware"       element={<Hardware />} />
+        <Route path="/demo"           element={<Demo />} />
+        <Route path="/*"              element={user ? <AppShell user={user} handleLogout={handleLogout} /> : <Navigate to="/home" />} />
       </Routes>
     </BrowserRouter>
   )
