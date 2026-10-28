@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 're
 import { AnimatePresence } from 'framer-motion'
 import { supabase } from './lib/supabase'
 import {
-  LayoutDashboard, ShieldCheck, CheckSquare, Bell,
+  LayoutDashboard, ShieldCheck, CalendarCheck, Bell,
   Bot, ScrollText, FolderLock, Users, User, ClipboardList, Shield, Building
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
@@ -33,7 +33,7 @@ import './index.css'
 const NAV_ALL = [
   { to: '/',         icon: LayoutDashboard, label: 'Dashboard'      },
   { to: '/certs',    icon: ShieldCheck,     label: 'Certifications' },
-  { to: '/tasks',    icon: CheckSquare,     label: 'Tasks'          },
+  { to: '/tasks',    icon: CalendarCheck,   label: 'Assignments'    },
   { to: '/training', icon: ClipboardList,   label: 'Training'       },
   { to: '/alerts',   icon: Bell,            label: 'Alerts'         },
   { to: '/ai',       icon: Bot,             label: 'AI Assistant'   },
