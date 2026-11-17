@@ -1,17 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
+import RenewalChecklist from '../components/RenewalChecklist'
 import { useData } from '../lib/useData'
 import { getCertifications, getAlerts, supabase } from '../lib/supabase'
 import { LoadingState, ErrorState } from '../components/States'
-import {
-  todayStr, daysBetween, formatTime, prettyDate, DEFAULT_TIME,
-  autoRenewalDate, scheduledRenewalKeys, hasRenewal, buildRenewalGroups,
-  scheduleRenewal, undoAssignments
-} from '../lib/training'
+import { todayStr, daysBetween, formatTime, scheduledRenewalKeys, hasRenewal } from '../lib/training'
 import {
   Settings, X, GripVertical, Eye, EyeOff, Clock, MapPin, Users, ArrowRight,
-  AlertTriangle, AlertCircle, Info, CalendarCheck, Mail, Undo2, Loader2
+  AlertTriangle, AlertCircle, Info
 } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -38,11 +35,6 @@ function mergeLayout(saved) {
   return [...kept, ...missing]
 }
 
-function emailNote(r) {
-  if (r.emailError) return ' · email failed'
-  return r.emailed ? ` · ${r.emailed} email${r.emailed !== 1 ? 's' : ''} sent` : ''
-}
-
 function ScoreRing({ score }) {
   const canvasRef = useRef(null)
   useEffect(() => {
@@ -53,7 +45,7 @@ function ScoreRing({ score }) {
     const color = score >= 80 ? '#059669' : score >= 60 ? '#D97706' : '#DC2626'
     let current = 0
     const target = (score / 100) * Math.PI * 2
-    const step = target / 60
+    const step = Math.max(target / 60, 0.001)
     const draw = () => {
       ctx.clearRect(0, 0, 140, 140)
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2)
@@ -115,10 +107,6 @@ export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [saving, setSaving] = useState(false)
 
-  // Auto-schedule state
-  const [scheduling, setScheduling] = useState(null)   // group key | 'all' | 'undo'
-  const [banner, setBanner] = useState(null)            // { text, ids, error }
-
   async function loadAssignments(isDemo) {
     const { data } = await supabase
       .from('training_assignments')
@@ -170,39 +158,6 @@ export default function Dashboard() {
     setWidgets(next); setDragging(null); setDragOver(null)
   }
 
-  // ---- One-click renewals (shared with Assignments) ----
-  async function autoSchedule(groups, key) {
-    setScheduling(key); setBanner(null)
-    const done = []
-    try {
-      for (const g of groups) done.push(await scheduleRenewal(user, g))
-      await loadAssignments(user?.is_demo === true)
-      const emails = done.reduce((s, r) => s + (r.emailed || 0), 0)
-      const failed = done.some(r => r.emailError)
-      const text = done.length === 1
-        ? `${done[0].cert} renewal set for ${prettyDate(done[0].date)} · ${formatTime(DEFAULT_TIME)} — ${done[0].people} assigned${emailNote(done[0])}`
-        : `${done.length} renewal sessions scheduled${emails ? ` · ${emails} emails sent` : ''}${failed ? ' · some emails failed' : ''}`
-      setBanner({ text, ids: done.map(d => d.created.id) })
-    } catch (err) {
-      if (done.length) await loadAssignments(user?.is_demo === true)
-      setBanner({ text: err.message, ids: done.map(d => d.created.id), error: true })
-    }
-    setScheduling(null)
-  }
-
-  async function undoBanner() {
-    if (!banner?.ids?.length) { setBanner(null); return }
-    setScheduling('undo')
-    try {
-      await undoAssignments(banner.ids)
-      setBanner({ text: 'Undone — cancellation emails sent.', ids: [] })
-    } catch (err) {
-      setBanner({ text: err.message, ids: [], error: true })
-    }
-    await loadAssignments(user?.is_demo === true)
-    setScheduling(null)
-  }
-
   if (l1 || l2 || loadingA) return <LoadingState type="dashboard" />
   if (e1 || e2) return <ErrorState message={e1 || e2} />
 
@@ -219,7 +174,6 @@ export default function Dashboard() {
   const upcoming  = open.filter(x => x.scheduled_date >= today)
   const pastDue   = open.filter(x => x.scheduled_date < today)
   const nextWeek  = upcoming.filter(x => daysBetween(x.scheduled_date) <= 7)
-  const score     = Math.max(0, 100 - (expired * 15) - (pastDue.length * 10) - (expiring * 5))
 
   // ---- Renewal matching ----
   const keys = scheduledRenewalKeys(assignments)
@@ -228,7 +182,13 @@ export default function Dashboard() {
   const expiringScheduled   = expiringCerts.filter(x => hasRenewal(keys, x)).length
   const expiringUnscheduled = expiringCerts.length - expiringScheduled
   const expiredScheduled    = expiredCerts.filter(x => hasRenewal(keys, x)).length
-  const renewalGroups = buildRenewalGroups([...expiredCerts, ...expiringCerts], keys)
+  const renewalCerts = [...expiredCerts, ...expiringCerts].filter(x => x.user_id)
+
+  // ---- Score: % of certs current, minus a capped training penalty ----
+  const certCredit = valid + expiringScheduled * 0.75 + expiringUnscheduled * 0.5
+  const certPct = c.length ? (certCredit / c.length) * 100 : 100
+  const trainingPenalty = Math.min(20, pastDue.length * 5)
+  const score = Math.max(0, Math.min(100, Math.round(certPct - trainingPenalty)))
 
   const allMembers = assignments.flatMap(x => x.training_assignment_members || [])
   const attendanceData = [
@@ -263,7 +223,6 @@ export default function Dashboard() {
     const d = data.find(x => x.name === v)
     return <span style={{ color: '#6B7280', fontSize: 12, fontWeight: 500 }}>{v}{d ? ` (${d.value})` : ''}</span>
   }
-  const busy = !!scheduling
 
   // ---- Widgets ----
   const W = {
@@ -273,9 +232,13 @@ export default function Dashboard() {
         <div>
           <div className="label" style={{ marginBottom: 8 }}>Compliance score</div>
           <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.8 }}>
-            <span style={{ color: '#DC2626', fontWeight: 600 }}>{expired} expired</span> cert{expired !== 1 ? 's' : ''}<br />
-            <span style={{ color: '#D97706', fontWeight: 600 }}>{expiring} expiring</span> soon{expiringScheduled ? <span style={{ color: '#7C3AED', fontWeight: 600 }}> · {expiringScheduled} scheduled</span> : null}<br />
+            <span style={{ color: '#059669', fontWeight: 600 }}>{valid} of {c.length}</span> certs current<br />
+            <span style={{ color: '#DC2626', fontWeight: 600 }}>{expired} expired</span>
+            {' · '}
+            <span style={{ color: '#D97706', fontWeight: 600 }}>{expiring} expiring</span>
+            {expiringScheduled ? <span style={{ color: '#7C3AED', fontWeight: 600 }}> ({expiringScheduled} scheduled)</span> : null}<br />
             <span style={{ color: pastDue.length ? '#DC2626' : '#6B7280', fontWeight: 600 }}>{pastDue.length} past-due</span> training
+            {trainingPenalty ? <span style={{ color: '#9CA3AF' }}> (−{trainingPenalty} pts)</span> : null}
           </div>
         </div>
       </div>
@@ -395,62 +358,26 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Confirmation banner */}
-            {isAdmin && banner && (
-              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, background: banner.error ? '#FEF2F2' : '#F5F3FF', border: `1px solid ${banner.error ? '#FECACA' : '#DDD6FE'}`, color: banner.error ? '#B91C1C' : '#5B21B6' }}>
-                {banner.error ? <AlertTriangle size={14} /> : <Mail size={14} />}
-                <span style={{ flex: 1, minWidth: 0 }}>{banner.text}</span>
-                {!banner.error && banner.ids?.length > 0 && (
-                  <button onClick={() => navigate('/tasks')} style={{ background: 'none', border: 'none', color: '#7C3AED', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>View</button>
-                )}
-                {banner.ids?.length > 0 && (
-                  <button onClick={undoBanner} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', color: '#6B7280', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
-                    {scheduling === 'undo' ? <Loader2 size={12} className="spin" /> : <Undo2 size={12} />} Undo
-                  </button>
-                )}
-                <button onClick={() => setBanner(null)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={13} /></button>
-              </div>
-            )}
-
-            {isAdmin && renewalGroups.length > 0 && (
+            {isAdmin && renewalCerts.length > 0 && (
               <div style={{ marginTop: 10, paddingTop: 12, borderTop: '1px solid #F3F4F6' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                    Needs a renewal session ({renewalGroups.length})
+                    Renewals ({renewalCerts.length})
                   </div>
-                  {renewalGroups.length > 1 && (
-                    <button onClick={() => autoSchedule(renewalGroups, 'all')} disabled={busy}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: '#7C3AED', fontSize: 12, fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif', opacity: busy ? 0.6 : 1 }}>
-                      {scheduling === 'all' ? <Loader2 size={13} className="spin" /> : <CalendarCheck size={13} />} Auto-schedule all
+                  {renewalCerts.length > 5 && (
+                    <button onClick={() => navigate('/tasks')} style={{ background: 'none', border: 'none', color: '#7C3AED', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif', padding: 0 }}>
+                      See all →
                     </button>
                   )}
                 </div>
-                {renewalGroups.slice(0, 4).map(g => {
-                  const firstName = g.certs[0]?.users?.full_name || 'Unassigned'
-                  const working = scheduling === g.key
-                  const autoDate = autoRenewalDate(g.soonest)
-                  return (
-                    <div key={g.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 12 }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: g.anyExpired ? '#DC2626' : '#D97706' }} />
-                      <span style={{ flex: 1, minWidth: 0, color: '#111827', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {g.cert_name} <span style={{ color: '#9CA3AF', fontWeight: 500 }}>· {g.people === 1 ? firstName : `${g.people} people`}</span>
-                      </span>
-                      <span style={{ fontWeight: 700, color: g.anyExpired ? '#B91C1C' : '#B45309', whiteSpace: 'nowrap' }}>
-                        {g.soonest < 0 ? `${Math.abs(g.soonest)}d overdue` : `${g.soonest}d left`}
-                      </span>
-                      <button onClick={() => autoSchedule([g], g.key)} disabled={busy}
-                        title={`Schedule for ${prettyDate(autoDate)} and email ${g.people === 1 ? firstName : `${g.people} people`}`}
-                        style={{ width: 28, height: 28, borderRadius: 7, flexShrink: 0, border: '1px solid #DDD6FE', background: '#F5F3FF', cursor: busy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: busy && !working ? 0.5 : 1 }}>
-                        {working ? <Loader2 size={14} color="#7C3AED" className="spin" /> : <CalendarCheck size={14} color="#7C3AED" />}
-                      </button>
-                    </div>
-                  )
-                })}
-                {renewalGroups.length > 4 && (
-                  <button onClick={() => navigate('/tasks')} style={{ marginTop: 4, background: 'none', border: 'none', color: '#6B7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif', padding: 0 }}>
-                    +{renewalGroups.length - 4} more on Assignments →
-                  </button>
-                )}
+                <RenewalChecklist
+                  user={user}
+                  certs={renewalCerts}
+                  assignments={assignments}
+                  onChanged={() => loadAssignments(user?.is_demo === true)}
+                  compact
+                  limit={5}
+                />
               </div>
             )}
           </>
@@ -517,8 +444,6 @@ export default function Dashboard() {
 
   return (
     <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <style>{`@keyframes ros-spin { to { transform: rotate(360deg) } } .spin { animation: ros-spin 0.8s linear infinite }`}</style>
-
       <PageHeader
         title="Dashboard"
         subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
