@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 import Toast from '../components/Toast'
 import {
   ClipboardList, Plus, X, ChevronDown, ChevronUp, Clock, Award, Target, AlertTriangle,
-  Flame, Biohazard, Anchor, HeartPulse, MapPin, Users, FileDown
+  Flame, Biohazard, Anchor, HeartPulse, MapPin, Users, FileDown,
+  MoreVertical, Pencil, Eye, Trash2
 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -26,6 +27,16 @@ const CATEGORIES = [
   { id: 'medical', label: 'Medical', Icon: HeartPulse,
     topics: ['CPR/AED', 'First Aid', 'Trauma Scenarios', 'Patient Assessment', 'Hemorrhage Control', 'EMS Operations', 'Mass Casualty', 'Other'] },
 ]
+
+function emptyForm() {
+  return {
+    title: '', category: 'fire', topic: '',
+    training_date: new Date().toISOString().split('T')[0],
+    start_time: '', end_time: '', duration_hours: '',
+    location: '', notes: '', is_quarterly: false,
+    third_party_provider: '', instructor_id: '', participants: [],
+  }
+}
 
 function formatDate(str) {
   if (!str) return '—'
@@ -63,6 +74,94 @@ function CatIcon({ cat, size = 16, active = false, box = 32 }) {
   )
 }
 
+/* ---------- Three-dot row menu ---------- */
+
+function RowMenu({ items }) {
+  const [pos, setPos] = useState(null)
+  const btnRef = useRef(null)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!pos) return
+    const close = () => setPos(null)
+    const onDown = e => {
+      if (menuRef.current?.contains(e.target) || btnRef.current?.contains(e.target)) return
+      close()
+    }
+    const onKey = e => { if (e.key === 'Escape') close() }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [pos])
+
+  function toggle(e) {
+    e.stopPropagation()
+    if (pos) { setPos(null); return }
+    const r = btnRef.current.getBoundingClientRect()
+    const MW = 200, MH = items.length * 38 + 10
+    const openUp = r.bottom + MH + 8 > window.innerHeight
+    setPos({ top: openUp ? r.top - MH - 4 : r.bottom + 4, left: Math.max(8, r.right - MW) })
+  }
+
+  return (
+    <>
+      <button ref={btnRef} type="button" onClick={toggle} aria-label="Session actions" title="Actions"
+        style={{
+          width: 30, height: 30, borderRadius: 7, flexShrink: 0,
+          border: `1px solid ${pos ? N.accent : N.border}`,
+          background: pos ? N.accentBg : '#fff', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .12s'
+        }}
+        onMouseOver={e => { if (!pos) e.currentTarget.style.borderColor = '#C4B5FD' }}
+        onMouseOut={e => { if (!pos) e.currentTarget.style.borderColor = N.border }}
+      >
+        <MoreVertical size={15} color={pos ? N.accent : N.sub} />
+      </button>
+
+      {pos && (
+        <div ref={menuRef} onClick={e => e.stopPropagation()} style={{
+          position: 'fixed', top: pos.top, left: pos.left, width: 200, zIndex: 1000,
+          background: '#fff', border: `1px solid ${N.border}`, borderRadius: 10, padding: 5,
+          boxShadow: '0 12px 32px rgba(17,24,39,0.14)'
+        }}>
+          {items.map(({ icon: Icon, label, fn, danger, divider }) => (
+            <div key={label}>
+              {divider && <div style={{ height: 1, background: '#F3F4F6', margin: '4px 2px' }} />}
+              <button type="button"
+                onClick={e => { e.stopPropagation(); setPos(null); fn() }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '9px 10px', borderRadius: 7, border: 'none', background: 'transparent',
+                  fontSize: 13, fontWeight: 500, color: danger ? STATUS.behind.color : '#374151',
+                  cursor: 'pointer', fontFamily: 'Inter, sans-serif', textAlign: 'left'
+                }}
+                onMouseOver={e => {
+                  e.currentTarget.style.background = danger ? STATUS.behind.bg : N.accentBg
+                  e.currentTarget.style.color = danger ? STATUS.behind.color : N.accent
+                }}
+                onMouseOut={e => {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.color = danger ? STATUS.behind.color : '#374151'
+                }}
+              >
+                <Icon size={15} strokeWidth={2} />
+                {label}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function TrainingTracker() {
   const [sessions, setSessions] = useState([])
   const [users, setUsers] = useState([])
@@ -71,6 +170,7 @@ export default function TrainingTracker() {
   const [toast, setToast] = useState(null)
   const [user, setUser] = useState(null)
   const [showNew, setShowNew] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [showGoals, setShowGoals] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [exportFrom, setExportFrom] = useState('')
@@ -81,14 +181,9 @@ export default function TrainingTracker() {
   const [expandedId, setExpandedId] = useState(null)
   const [deleting, setDeleting] = useState(null)
   const [activeTab, setActiveTab] = useState('sessions')
+  const formRef = useRef(null)
 
-  const [form, setForm] = useState({
-    title: '', category: 'fire', topic: '',
-    training_date: new Date().toISOString().split('T')[0],
-    start_time: '', end_time: '', duration_hours: '',
-    location: '', notes: '', is_quarterly: false,
-    third_party_provider: '', instructor_id: '', participants: [],
-  })
+  const [form, setForm] = useState(emptyForm())
 
   const [goalForm, setGoalForm] = useState({
     fire:    { daily_hours: 1, quarterly_hours: 8 },
@@ -98,6 +193,10 @@ export default function TrainingTracker() {
   })
 
   useEffect(() => { loadAll() }, [])
+
+  useEffect(() => {
+    if (showNew && formRef.current) formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [showNew, editingId])
 
   async function loadAll() {
     setLoading(true)
@@ -144,22 +243,64 @@ export default function TrainingTracker() {
     setForm(prev => ({ ...prev, participants: prev.participants.includes(id) ? prev.participants.filter(p => p !== id) : [...prev.participants, id] }))
   }
 
+  function openNew() {
+    setEditingId(null)
+    setForm(emptyForm())
+    setActiveTab('sessions')
+    setShowNew(true)
+  }
+
+  function startEdit(s) {
+    setForm({
+      title: s.title || '',
+      category: s.category || 'fire',
+      topic: s.topic || '',
+      training_date: s.training_date || new Date().toISOString().split('T')[0],
+      start_time: s.start_time ? s.start_time.slice(0, 5) : '',
+      end_time: s.end_time ? s.end_time.slice(0, 5) : '',
+      duration_hours: s.duration_hours != null ? String(s.duration_hours) : '',
+      location: s.location || '',
+      notes: s.notes || '',
+      is_quarterly: !!s.is_quarterly,
+      third_party_provider: s.third_party_provider || '',
+      instructor_id: s.instructor_id || '',
+      participants: Array.isArray(s.participants) ? s.participants : [],
+    })
+    setEditingId(s.id)
+    setActiveTab('sessions')
+    setShowNew(true)
+  }
+
+  function closeForm() {
+    setShowNew(false)
+    setEditingId(null)
+    setForm(emptyForm())
+  }
+
   async function handleSubmit() {
     if (!form.title || !form.category || !form.topic || !form.training_date) { showToast('Please fill in title, category, topic, and date.', 'error'); return }
     setSaving(true)
-    const { error } = await supabase.from('training_sessions').insert({
-      logged_by: user?.id, instructor_id: form.instructor_id || null,
+
+    const payload = {
+      instructor_id: form.instructor_id || null,
       title: form.title, category: form.category, topic: form.topic,
       training_date: form.training_date, start_time: form.start_time || null, end_time: form.end_time || null,
       duration_hours: form.duration_hours ? parseFloat(form.duration_hours) : null,
       location: form.location || null, notes: form.notes || null,
       is_quarterly: form.is_quarterly, third_party_provider: form.third_party_provider || null,
-      participants: form.participants, is_demo: user?.is_demo === true
-    })
+      participants: form.participants,
+    }
+
+    const { error } = editingId
+      ? await supabase.from('training_sessions').update(payload).eq('id', editingId)
+      : await supabase.from('training_sessions').insert({ ...payload, logged_by: user?.id, is_demo: user?.is_demo === true })
+
     if (error) { showToast(error.message, 'error'); setSaving(false); return }
-    setSaving(false); setShowNew(false)
-    setForm({ title: '', category: 'fire', topic: '', training_date: new Date().toISOString().split('T')[0], start_time: '', end_time: '', duration_hours: '', location: '', notes: '', is_quarterly: false, third_party_provider: '', instructor_id: '', participants: [] })
-    await loadAll(); showToast('Training session logged successfully.')
+    const wasEditing = !!editingId
+    setSaving(false)
+    closeForm()
+    await loadAll()
+    showToast(wasEditing ? 'Training session updated.' : 'Training session logged successfully.')
   }
 
   async function handleSaveGoals() {
@@ -179,7 +320,9 @@ export default function TrainingTracker() {
   async function handleDelete(id) {
     if (!window.confirm('Delete this training session?')) return
     setDeleting(id)
-    await supabase.from('training_sessions').delete().eq('id', id)
+    const { error } = await supabase.from('training_sessions').delete().eq('id', id)
+    if (error) { setDeleting(null); showToast(error.message, 'error'); return }
+    if (editingId === id) closeForm()
     await loadAll(); setDeleting(null); showToast('Training session deleted.', 'error')
   }
 
@@ -208,6 +351,7 @@ export default function TrainingTracker() {
   const behindCount = catStats.filter(c => c.monthBehind || c.qBehind).length
   const filtered = filter === 'all' ? sessions : sessions.filter(s => s.category === filter)
   const isAdmin = ['admin', 'supervisor'].includes(user?.role)
+  const canManage = s => isAdmin || (user?.id && s.logged_by === user.id)
   const formCat = CATEGORIES.find(c => c.id === form.category)
 
   const exportFiltered = sessions.filter(s => {
@@ -308,6 +452,16 @@ export default function TrainingTracker() {
     showToast('Training report exported as PDF.')
   }
 
+  function menuItems(s) {
+    const expanded = expandedId === s.id
+    const items = []
+    if (canManage(s)) items.push({ icon: Pencil, label: 'Edit', fn: () => startEdit(s) })
+    items.push({ icon: Eye, label: expanded ? 'Hide details' : 'View details', fn: () => setExpandedId(expanded ? null : s.id) })
+    items.push({ icon: FileDown, label: 'Download PDF', fn: () => exportSessionPDF(s) })
+    if (canManage(s)) items.push({ icon: Trash2, label: 'Delete', fn: () => handleDelete(s.id), danger: true, divider: true })
+    return items
+  }
+
   const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: `1px solid ${N.border}`, background: '#fff', color: N.text, fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none', transition: 'border-color .12s' }
   const labelStyle = { fontSize: 12, fontWeight: 600, color: N.sub, marginBottom: 5, display: 'block' }
   const focusOn = e => e.target.style.borderColor = N.accent
@@ -332,7 +486,7 @@ export default function TrainingTracker() {
             <button className="btn btn-ghost" onClick={() => setShowExportModal(true)} disabled={sessions.length === 0} style={{ opacity: sessions.length === 0 ? 0.5 : 1 }}>
               <FileDown size={14} strokeWidth={2} /> Export PDF
             </button>
-            <button className="btn btn-primary" onClick={() => setShowNew(true)}>
+            <button className="btn btn-primary" onClick={openNew}>
               <Plus size={15} strokeWidth={2} /> Log session
             </button>
           </div>
@@ -511,10 +665,13 @@ export default function TrainingTracker() {
       {activeTab === 'sessions' && (
         <>
           {showNew && (
-            <div className="card" style={{ borderTop: `3px solid ${N.accent}` }}>
+            <div ref={formRef} className="card" style={{ borderTop: `3px solid ${N.accent}`, scrollMarginTop: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: N.text }}>Log training session</div>
-                <button onClick={() => setShowNew(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: N.muted }}><X size={18} /></button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: N.text }}>{editingId ? 'Edit training session' : 'Log training session'}</div>
+                  {editingId && <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 600, background: N.accentBg, color: N.accent, border: `1px solid ${N.accentBorder}` }}>Editing</span>}
+                </div>
+                <button onClick={closeForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: N.muted }}><X size={18} /></button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
@@ -541,6 +698,7 @@ export default function TrainingTracker() {
                     <select value={form.topic} onChange={e => setF('topic', e.target.value)} style={inputStyle}>
                       <option value="">Select topic...</option>
                       {formCat?.topics.map(t => <option key={t}>{t}</option>)}
+                      {form.topic && !formCat?.topics.includes(form.topic) && <option>{form.topic}</option>}
                     </select>
                   </div>
                 </div>
@@ -594,8 +752,10 @@ export default function TrainingTracker() {
                   <textarea value={form.notes} onChange={e => setF('notes', e.target.value)} rows={3} placeholder="Training objectives, observations, follow-up items..." style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} onFocus={focusOn} onBlur={focusOff} />
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <button className="btn btn-ghost" onClick={() => setShowNew(false)}>Cancel</button>
-                  <button className="btn btn-primary" onClick={handleSubmit} disabled={saving} style={{ opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : 'Log session →'}</button>
+                  <button className="btn btn-ghost" onClick={closeForm}>Cancel</button>
+                  <button className="btn btn-primary" onClick={handleSubmit} disabled={saving} style={{ opacity: saving ? 0.6 : 1 }}>
+                    {saving ? 'Saving...' : editingId ? 'Save changes' : 'Log session →'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -626,9 +786,10 @@ export default function TrainingTracker() {
               {filtered.map(s => {
                 const c = CATEGORIES.find(x => x.id === s.category) || CATEGORIES[0]
                 const expanded = expandedId === s.id
+                const isEditing = editingId === s.id
                 const participantNames = (s.participants || []).map(pid => users.find(u => u.id === pid)?.full_name || '').filter(Boolean)
                 return (
-                  <div key={s.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                  <div key={s.id} className="card" style={{ padding: 0, overflow: 'hidden', opacity: deleting === s.id ? 0.5 : 1, border: isEditing ? `1.5px solid ${N.accent}` : undefined }}>
                     <div style={{ padding: '14px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }} onClick={() => setExpandedId(expanded ? null : s.id)}>
                       <CatIcon cat={c} size={18} box={36} />
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -636,6 +797,7 @@ export default function TrainingTracker() {
                           <span style={{ fontSize: 14, fontWeight: 700, color: N.text }}>{s.title}</span>
                           <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 600, background: N.iconBg, color: N.sub, border: `1px solid ${N.border}` }}>{c.label}</span>
                           {s.is_quarterly && <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 600, background: N.iconBg, color: N.sub, border: `1px solid ${N.border}` }}>Quarterly</span>}
+                          {isEditing && <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 600, background: N.accentBg, color: N.accent, border: `1px solid ${N.accentBorder}` }}>Editing</span>}
                         </div>
                         <div style={{ fontSize: 12, color: N.sub, marginTop: 3, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                           <span>{formatDate(s.training_date)}</span>
@@ -645,12 +807,7 @@ export default function TrainingTracker() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <button onClick={e => { e.stopPropagation(); exportSessionPDF(s) }} style={{ padding: '4px 10px', borderRadius: 6, border: `1px solid ${N.border}`, background: '#fff', color: N.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <FileDown size={12} /> PDF
-                        </button>
-                        <button onClick={e => { e.stopPropagation(); handleDelete(s.id) }} disabled={deleting === s.id} style={{ padding: '4px 10px', borderRadius: 6, border: `1px solid ${N.border}`, background: '#fff', color: STATUS.behind.color, fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: deleting === s.id ? 0.5 : 1 }}>
-                          {deleting === s.id ? '...' : 'Delete'}
-                        </button>
+                        <RowMenu items={menuItems(s)} />
                         {expanded ? <ChevronUp size={16} color={N.muted} /> : <ChevronDown size={16} color={N.muted} />}
                       </div>
                     </div>
