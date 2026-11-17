@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 import Toast from '../components/Toast'
 import {
   CalendarPlus, X, ChevronDown, ChevronUp, Calendar, Clock, MapPin, User, Users,
-  CheckCircle2, XCircle, AlertTriangle, Flame, Biohazard, Anchor, HeartPulse, ShieldAlert, Search
+  CheckCircle2, XCircle, AlertTriangle, Flame, Biohazard, Anchor, HeartPulse, ShieldAlert, Search,
+  SlidersHorizontal, RefreshCw
 } from 'lucide-react'
+
+const SUPER_EMAILS = ['jlane@responseos.net', 'hseals@responseos.net']
 
 const CATEGORIES = [
   { id: 'fire',    label: 'Fire',    Icon: Flame,      topics: ['Fire Extinguisher Operations', 'SCBA Operations', 'Foam Operations', 'Defensive Fire Attack', 'Fire Behavior', 'Fire Drills', 'Wildland Fire', 'Other'] },
@@ -38,11 +41,11 @@ function todayStr() {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0]
 }
 function daysBetween(dateStr) {
-  return Math.round((new Date(dateStr + 'T00:00:00') - new Date(todayStr() + 'T00:00:00')) / 86400000)
+  return Math.round((new Date(String(dateStr).slice(0, 10) + 'T00:00:00') - new Date(todayStr() + 'T00:00:00')) / 86400000)
 }
 function formatDate(str) {
   if (!str) return '—'
-  return new Date(str + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+  return new Date(String(str).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 }
 function formatTime(t) {
   if (!t) return ''
@@ -65,12 +68,40 @@ function stateOf(a) {
 function initials(name) {
   return (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
+function norm(s) { return String(s || '').trim().toLowerCase() }
+function guessCategory(name) {
+  const n = norm(name)
+  if (/cpr|aed|first aid|ems|emt|medic|trauma|bls|bloodborne/.test(n)) return 'medical'
+  if (/hazmat|hazwoper|chemical|spill|decon|erg/.test(n)) return 'hazmat'
+  if (/confined|rope|rescue|angle|trench|extrication|fall/.test(n)) return 'rescue'
+  return 'fire'
+}
+function roleOf(p) { return String(p?.role || '').toLowerCase() }
+function isManagerProfile(p) {
+  return ['admin', 'supervisor'].includes(roleOf(p)) || SUPER_EMAILS.includes(String(p?.email || '').toLowerCase())
+}
 
 function Pill({ cfg }) {
   return (
     <span style={{ padding: '2px 9px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, whiteSpace: 'nowrap' }}>
       {cfg.label}
     </span>
+  )
+}
+
+function CategoryChips({ value, onChange }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+      {CATEGORIES.map(c => {
+        const on = value === c.id
+        return (
+          <button key={c.id} type="button" onClick={() => onChange(c.id)} style={{ padding: '8px 10px', borderRadius: 8, cursor: 'pointer', border: `1.5px solid ${on ? '#7C3AED' : '#E5E7EB'}`, background: on ? '#F5F3FF' : '#fff', display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Inter, sans-serif' }}>
+            <c.Icon size={15} color={on ? '#7C3AED' : '#6B7280'} strokeWidth={2} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: on ? '#7C3AED' : '#374151' }}>{c.label}</span>
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -81,17 +112,25 @@ export default function Tasks() {
   const [certs, setCerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState(EMPTY_FORM)
-  const [memberSearch, setMemberSearch] = useState('')
-  const [saving, setSaving] = useState(false)
   const [filter, setFilter] = useState('upcoming')
   const [expandedId, setExpandedId] = useState(null)
   const [acting, setActing] = useState(null)
-  const [selectedCerts, setSelectedCerts] = useState([])
 
-  const isManager = ['admin', 'supervisor'].includes(user?.role)
-  const canViewAll = ['admin', 'supervisor', 'auditor'].includes(user?.role)
+  // Full schedule form
+  const [showForm, setShowForm] = useState(false)
+  const [showMore, setShowMore] = useState(false)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [memberSearch, setMemberSearch] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Quick renewal popup
+  const [renewal, setRenewal] = useState(null)
+  const [renewForm, setRenewForm] = useState({ scheduled_date: '', start_time: '', location: '', category: 'fire', members: [] })
+
+  const renewParamHandled = useRef(false)
+
+  const isManager = isManagerProfile(user)
+  const canViewAll = isManager || roleOf(user) === 'auditor'
 
   useEffect(() => { loadAll() }, [])
 
@@ -102,7 +141,7 @@ export default function Tasks() {
     const { data: profile } = await supabase.from('users').select('*').eq('id', authUser.id).single()
     setUser(profile)
     const isDemo = profile?.is_demo === true
-    const manager = ['admin', 'supervisor'].includes(profile?.role)
+    const manager = isManagerProfile(profile)
 
     const in60 = new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0]
 
@@ -134,65 +173,120 @@ export default function Tasks() {
     await supabase.from('audit_logs').insert({ actor_id: user?.id, action, table_name: 'training_assignments', record_id, after_state })
   }
 
-  // ---- Renewal scheduling from expiring certs ----
+  // ---- Shared create: session + members, rolls back if members fail ----
+  async function createAssignment(payload, memberIds) {
+    const isDemo = user?.is_demo === true
+    const { data: created, error } = await supabase.from('training_assignments')
+      .insert({ ...payload, created_by: user?.id, is_demo: isDemo })
+      .select().single()
+    if (error) return { error }
+
+    if (memberIds.length) {
+      const { error: mErr } = await supabase.from('training_assignment_members').insert(
+        memberIds.map(uid => ({ assignment_id: created.id, user_id: uid, is_demo: isDemo }))
+      )
+      if (mErr) {
+        await supabase.from('training_assignments').delete().eq('id', created.id)
+        return { error: mErr }
+      }
+    }
+
+    await logAudit('training_scheduled', created.id, { title: payload.title, date: payload.scheduled_date, assigned: memberIds.length, renews: payload.related_cert_name || null })
+    return { created }
+  }
+
+  // ---- Renewal groups (one per cert name, only people not already scheduled) ----
   function isCertScheduled(cert) {
     return assignments.some(a =>
       ['upcoming', 'overdue'].includes(stateOf(a)) &&
-      a.related_cert_name === cert.cert_name &&
-      (a.training_assignment_members || []).some(m => m.user_id === cert.user_id)
+      norm(a.related_cert_name) === norm(cert.cert_name) &&
+      (a.training_assignment_members || []).some(m => m.user_id === cert.user_id && m.status === 'pending')
     )
   }
 
-  function toggleCert(id) {
-    setSelectedCerts(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id])
-  }
+  const renewalCerts = certs.filter(c => !isCertScheduled(c))
+  const renewalGroups = Object.values(renewalCerts.reduce((acc, c) => {
+    const k = norm(c.cert_name)
+    if (!acc[k]) acc[k] = { key: k, cert_name: c.cert_name, certs: [] }
+    acc[k].certs.push(c)
+    return acc
+  }, {}))
+    .map(g => ({ ...g, soonest: Math.min(...g.certs.map(c => daysBetween(c.expiry_date))) }))
+    .sort((a, b) => a.soonest - b.soonest)
 
-  function openRenewal() {
-    const chosen = certs.filter(c => selectedCerts.includes(c.id))
-    const names = [...new Set(chosen.map(c => c.cert_name))]
-    const certName = names.length === 1 ? names[0] : ''
-    setForm({
-      ...EMPTY_FORM,
-      title: certName ? `${certName} renewal training` : 'Certification renewal training',
-      related_cert_name: certName,
-      members: [...new Set(chosen.map(c => c.user_id))],
+  function openRenewal(group) {
+    setRenewal(group)
+    setRenewForm({
+      scheduled_date: '', start_time: '', location: '',
+      category: guessCategory(group.cert_name),
+      members: [...new Set(group.certs.map(c => c.user_id))],
     })
-    setShowForm(true)
   }
 
-  // ---- Create ----
-  async function handleSchedule() {
-    if (!form.title || !form.scheduled_date) { showToast('Add a title and a scheduled date.', 'error'); return }
-    if (form.members.length === 0) { showToast('Assign at least one employee.', 'error'); return }
+  // Deep link: /tasks?renew=<certId>
+  useEffect(() => {
+    if (loading || renewParamHandled.current) return
+    renewParamHandled.current = true
+    const id = new URLSearchParams(window.location.search).get('renew')
+    if (!id) return
+    window.history.replaceState(null, '', window.location.pathname)
+    const cert = certs.find(c => String(c.id) === id)
+    if (!cert) { showToast('That certification is already scheduled or not due yet.'); return }
+    const g = renewalGroups.find(gr => gr.key === norm(cert.cert_name))
+    if (g) openRenewal(g)
+  }, [loading])
+
+  async function handleRenewal() {
+    if (!renewForm.scheduled_date) { showToast('Pick a date.', 'error'); return }
+    if (renewForm.members.length === 0) { showToast('Select at least one person.', 'error'); return }
     setSaving(true)
-    const isDemo = user?.is_demo === true
-
-    const { data: created, error } = await supabase.from('training_assignments').insert({
-      title: form.title, category: form.category, topic: form.topic || null,
-      description: form.description || null, scheduled_date: form.scheduled_date,
-      start_time: form.start_time || null, end_time: form.end_time || null,
-      location: form.location || null, instructor_id: form.instructor_id || null,
-      related_cert_name: form.related_cert_name || null,
-      created_by: user?.id, is_demo: isDemo
-    }).select().single()
-
-    if (error) { showToast(error.message, 'error'); setSaving(false); return }
-
-    const { error: mErr } = await supabase.from('training_assignment_members').insert(
-      form.members.map(uid => ({ assignment_id: created.id, user_id: uid, is_demo: isDemo }))
-    )
-    if (mErr) { showToast(mErr.message, 'error'); setSaving(false); return }
-
-    await logAudit('training_scheduled', created.id, { title: form.title, date: form.scheduled_date, assigned: form.members.length })
-
+    const { created, error } = await createAssignment({
+      title: `${renewal.cert_name} renewal`,
+      category: renewForm.category,
+      topic: null, description: null,
+      scheduled_date: renewForm.scheduled_date,
+      start_time: renewForm.start_time || null, end_time: null,
+      location: renewForm.location || null, instructor_id: null,
+      related_cert_name: renewal.cert_name,
+    }, renewForm.members)
     setSaving(false)
-    setShowForm(false)
-    setForm(EMPTY_FORM)
-    setSelectedCerts([])
+    if (error) { showToast(error.message, 'error'); return }
+    const n = renewForm.members.length
+    setRenewal(null)
     await loadAll()
     setFilter('upcoming')
     setExpandedId(created.id)
-    showToast(`Training scheduled for ${form.members.length} employee${form.members.length !== 1 ? 's' : ''}.`)
+    showToast(`Renewal scheduled for ${n} ${n === 1 ? 'person' : 'people'}.`)
+  }
+
+  // ---- Full schedule form ----
+  function openForm() {
+    setForm(EMPTY_FORM)
+    setShowMore(false)
+    setMemberSearch('')
+    setShowForm(true)
+  }
+
+  async function handleSchedule() {
+    if (!form.title.trim() || !form.scheduled_date) { showToast('Add a title and a date.', 'error'); return }
+    if (form.members.length === 0) { showToast('Assign at least one employee.', 'error'); return }
+    setSaving(true)
+    const n = form.members.length
+    const { created, error } = await createAssignment({
+      title: form.title.trim(), category: form.category, topic: form.topic || null,
+      description: form.description || null, scheduled_date: form.scheduled_date,
+      start_time: form.start_time || null, end_time: form.end_time || null,
+      location: form.location || null, instructor_id: form.instructor_id || null,
+      related_cert_name: form.related_cert_name.trim() || null,
+    }, form.members)
+    setSaving(false)
+    if (error) { showToast(error.message, 'error'); return }
+    setShowForm(false)
+    setForm(EMPTY_FORM)
+    await loadAll()
+    setFilter('upcoming')
+    setExpandedId(created.id)
+    showToast(`Training scheduled for ${n} employee${n !== 1 ? 's' : ''}.`)
   }
 
   // ---- Per-employee completion ----
@@ -262,13 +356,15 @@ export default function Tasks() {
     .filter(a => filter === 'all' ? true : stateOf(a) === filter)
     .sort((x, y) => filter === 'completed' ? y.scheduled_date.localeCompare(x.scheduled_date) : x.scheduled_date.localeCompare(y.scheduled_date))
 
-  const renewalCerts = certs.filter(c => !isCertScheduled(c))
   const formCat = CATEGORIES.find(c => c.id === form.category)
   const filteredUsers = users.filter(u => u.full_name?.toLowerCase().includes(memberSearch.toLowerCase()))
+  const allCertNames = [...new Set(certs.map(c => c.cert_name).filter(Boolean))]
 
-  const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', color: '#111827', fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none' }
+  const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', color: '#111827', fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none', boxSizing: 'border-box' }
   const labelStyle = { fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 5, display: 'block' }
   const smallBtn = { padding: '5px 10px', borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', color: '#374151', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif', display: 'inline-flex', alignItems: 'center', gap: 4 }
+  const overlay = { position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }
+  const modalHead = { padding: '18px 24px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }
 
   return (
     <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -279,7 +375,7 @@ export default function Tasks() {
         title="Training Assignments"
         subtitle={isManager ? 'Schedule training, assign employees, and document completion.' : 'Your scheduled training sessions.'}
         action={isManager && (
-          <button className="btn btn-primary" onClick={() => { setForm(EMPTY_FORM); setShowForm(true) }}>
+          <button className="btn btn-primary" onClick={openForm}>
             <CalendarPlus size={15} strokeWidth={2} /> Schedule training
           </button>
         )}
@@ -288,10 +384,10 @@ export default function Tasks() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         {[
-          { label: 'Upcoming',  value: counts.upcoming },
+          { label: 'Upcoming',    value: counts.upcoming },
           { label: 'Next 7 days', value: counts.week },
-          { label: 'Past due',  value: counts.overdue, alert: counts.overdue > 0 },
-          { label: 'Completed', value: counts.completed },
+          { label: 'Past due',    value: counts.overdue, alert: counts.overdue > 0 },
+          { label: 'Completed',   value: counts.completed },
         ].map(s => (
           <div key={s.label} className="card" style={{ borderTop: `3px solid ${s.alert ? '#DC2626' : '#7C3AED'}` }}>
             <div style={{ fontSize: 28, fontWeight: 800, color: s.alert ? '#B91C1C' : '#111827', lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
@@ -300,36 +396,40 @@ export default function Tasks() {
         ))}
       </div>
 
-      {/* Certifications needing renewal */}
-      {isManager && renewalCerts.length > 0 && (
+      {/* Certifications needing renewal — grouped by cert */}
+      {isManager && renewalGroups.length > 0 && (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid #F3F4F6', background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <ShieldAlert size={16} color="#7C3AED" strokeWidth={2} />
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Certifications needing renewal</div>
-                <div style={{ fontSize: 12, color: '#9CA3AF' }}>Expired or expiring within 60 days, not yet scheduled</div>
-              </div>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid #F3F4F6', background: '#F9FAFB', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ShieldAlert size={16} color="#7C3AED" strokeWidth={2} />
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Certifications needing renewal</div>
+              <div style={{ fontSize: 12, color: '#9CA3AF' }}>Expired or expiring within 60 days, not yet scheduled</div>
             </div>
-            <button className="btn btn-primary" disabled={selectedCerts.length === 0} onClick={openRenewal} style={{ opacity: selectedCerts.length === 0 ? 0.5 : 1 }}>
-              <CalendarPlus size={14} strokeWidth={2} /> Schedule renewal{selectedCerts.length ? ` (${selectedCerts.length})` : ''}
-            </button>
           </div>
-          <div style={{ maxHeight: 260, overflowY: 'auto' }}>
-            {renewalCerts.map(c => {
-              const days = daysBetween(c.expiry_date)
-              const expired = days < 0
+          <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+            {renewalGroups.map(g => {
+              const names = [...new Set(g.certs.map(c => c.users?.full_name || 'Unassigned'))]
+              const urgent = g.soonest <= 7
               return (
-                <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: '1px solid #F9FAFB', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={selectedCerts.includes(c.id)} onChange={() => toggleCert(c.id)} style={{ width: 16, height: 16, accentColor: '#7C3AED' }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{c.users?.full_name || '—'}</div>
-                    <div style={{ fontSize: 12, color: '#6B7280' }}>{c.cert_name} · expires {formatDate(c.expiry_date)}</div>
+                <div key={g.key} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #F9FAFB' }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0, background: '#F3F4F6', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <RefreshCw size={15} color="#4B5563" />
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: expired || days <= 7 ? '#B91C1C' : '#374151', fontFamily: 'var(--mono)' }}>
-                    {expired ? `${Math.abs(days)}d overdue` : `${days}d left`}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
+                      {g.cert_name} <span style={{ fontWeight: 500, color: '#6B7280' }}>· {names.length} {names.length === 1 ? 'person' : 'people'} due</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {names.slice(0, 3).join(', ')}{names.length > 3 ? ` +${names.length - 3} more` : ''}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: urgent ? '#B91C1C' : '#374151', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>
+                    {g.soonest < 0 ? `${Math.abs(g.soonest)}d overdue` : `${g.soonest}d left`}
                   </span>
-                </label>
+                  <button className="btn btn-primary" onClick={() => openRenewal(g)} style={{ fontSize: 12, padding: '6px 12px' }}>
+                    <CalendarPlus size={13} strokeWidth={2} /> Schedule renewal
+                  </button>
+                </div>
               )
             })}
           </div>
@@ -384,7 +484,11 @@ export default function Tasks() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{a.title}</span>
                       <Pill cfg={STATE[st]} />
-                      {a.related_cert_name && <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>Renewal · {a.related_cert_name}</span>}
+                      {a.related_cert_name && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6B7280', fontWeight: 600 }}>
+                          <RefreshCw size={11} /> Renews {a.related_cert_name}
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: 12, color: '#6B7280', marginTop: 3, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={12} /> {formatDate(a.scheduled_date)}{open && days >= 0 && days <= 7 ? ` · ${days === 0 ? 'today' : `in ${days}d`}` : ''}</span>
@@ -400,8 +504,8 @@ export default function Tasks() {
                   <div style={{ padding: '0 18px 16px', borderTop: '1px solid #F3F4F6' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, paddingTop: 14 }}>
                       {[
-                        { label: 'Category', value: cat.label },
-                        { label: 'Topic', value: a.topic || '—' },
+                        { label: 'Category',   value: cat.label },
+                        { label: 'Topic',      value: a.topic || '—' },
                         { label: 'Instructor', value: a.instructor?.full_name || '—' },
                       ].map(r => (
                         <div key={r.label}>
@@ -420,27 +524,31 @@ export default function Tasks() {
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
                         {canViewAll ? `Assigned employees (${members.length})` : 'Your status'}
                       </div>
-                      <div style={{ border: '1px solid #F3F4F6', borderRadius: 10, overflow: 'hidden' }}>
-                        {members.map((m, i) => (
-                          <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderBottom: i < members.length - 1 ? '1px solid #F9FAFB' : 'none' }}>
-                            <div style={{ width: 28, height: 28, borderRadius: 7, background: '#F3F4F6', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
-                              {initials(m.user?.full_name)}
-                            </div>
-                            <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#111827' }}>{m.user?.full_name || 'Employee'}</span>
-                            <Pill cfg={MEMBER_STATE[m.status] || MEMBER_STATE.pending} />
-                            {isManager && open && (
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                <button disabled={acting === m.id} onClick={() => markMember(m, m.status === 'completed' ? 'pending' : 'completed')} style={{ ...smallBtn, opacity: acting === m.id ? 0.5 : 1 }}>
-                                  <CheckCircle2 size={12} /> {m.status === 'completed' ? 'Undo' : 'Attended'}
-                                </button>
-                                <button disabled={acting === m.id} onClick={() => markMember(m, m.status === 'missed' ? 'pending' : 'missed')} style={{ ...smallBtn, opacity: acting === m.id ? 0.5 : 1 }}>
-                                  <XCircle size={12} /> {m.status === 'missed' ? 'Undo' : 'Missed'}
-                                </button>
+                      {members.length === 0 ? (
+                        <div style={{ fontSize: 13, color: '#9CA3AF', padding: '10px 12px', border: '1px dashed #E5E7EB', borderRadius: 10 }}>No one assigned.</div>
+                      ) : (
+                        <div style={{ border: '1px solid #F3F4F6', borderRadius: 10, overflow: 'hidden' }}>
+                          {members.map((m, i) => (
+                            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderBottom: i < members.length - 1 ? '1px solid #F9FAFB' : 'none' }}>
+                              <div style={{ width: 28, height: 28, borderRadius: 7, background: '#F3F4F6', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                                {initials(m.user?.full_name)}
                               </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                              <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#111827' }}>{m.user?.full_name || 'Employee'}</span>
+                              <Pill cfg={MEMBER_STATE[m.status] || MEMBER_STATE.pending} />
+                              {isManager && open && (
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                  <button disabled={acting === m.id} onClick={() => markMember(m, m.status === 'completed' ? 'pending' : 'completed')} style={{ ...smallBtn, opacity: acting === m.id ? 0.5 : 1 }}>
+                                    <CheckCircle2 size={12} /> {m.status === 'completed' ? 'Undo' : 'Attended'}
+                                  </button>
+                                  <button disabled={acting === m.id} onClick={() => markMember(m, m.status === 'missed' ? 'pending' : 'missed')} style={{ ...smallBtn, opacity: acting === m.id ? 0.5 : 1 }}>
+                                    <XCircle size={12} /> {m.status === 'missed' ? 'Undo' : 'Missed'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {isManager && open && (
@@ -465,87 +573,117 @@ export default function Tasks() {
         </div>
       )}
 
-      {/* Schedule modal */}
-      {showForm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
-            <div style={{ padding: '18px 24px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#111827' }}>Schedule training</div>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}><X size={18} /></button>
+      {/* ---------- Quick renewal popup ---------- */}
+      {renewal && (
+        <div style={overlay} onClick={() => setRenewal(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+            <div style={modalHead}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#111827' }}>Schedule renewal</div>
+                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <RefreshCw size={12} /> {renewal.cert_name}
+                </div>
+              </div>
+              <button onClick={() => setRenewal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}><X size={18} /></button>
             </div>
 
             <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Date *</label>
+                  <input type="date" min={today} value={renewForm.scheduled_date} onChange={e => setRenewForm(p => ({ ...p, scheduled_date: e.target.value }))} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Start time</label>
+                  <input type="time" value={renewForm.start_time} onChange={e => setRenewForm(p => ({ ...p, start_time: e.target.value }))} style={inputStyle} />
+                </div>
+              </div>
               <div>
-                <label style={labelStyle}>Category *</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                  {CATEGORIES.map(c => {
-                    const on = form.category === c.id
+                <label style={labelStyle}>Location</label>
+                <input value={renewForm.location} onChange={e => setRenewForm(p => ({ ...p, location: e.target.value }))} placeholder="e.g. Station 4, Training Bay" style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Category</label>
+                <CategoryChips value={renewForm.category} onChange={v => setRenewForm(p => ({ ...p, category: v }))} />
+              </div>
+
+              <div>
+                <label style={labelStyle}>People due ({renewForm.members.length} selected)</label>
+                <div style={{ border: '1px solid #E5E7EB', borderRadius: 10, overflow: 'hidden' }}>
+                  {renewal.certs.map((c, i) => {
+                    const on = renewForm.members.includes(c.user_id)
+                    const d = daysBetween(c.expiry_date)
                     return (
-                      <button key={c.id} onClick={() => setForm(prev => ({ ...prev, category: c.id, topic: '' }))} style={{ padding: 10, borderRadius: 8, cursor: 'pointer', border: `1.5px solid ${on ? '#7C3AED' : '#E5E7EB'}`, background: on ? '#F5F3FF' : '#fff', display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Inter, sans-serif' }}>
-                        <c.Icon size={16} color={on ? '#7C3AED' : '#6B7280'} strokeWidth={2} />
-                        <span style={{ fontSize: 13, fontWeight: 600, color: on ? '#7C3AED' : '#374151' }}>{c.label}</span>
-                      </button>
+                      <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderBottom: i < renewal.certs.length - 1 ? '1px solid #F3F4F6' : 'none', cursor: 'pointer', background: on ? '#FAFAFF' : '#fff' }}>
+                        <input type="checkbox" checked={on} style={{ width: 16, height: 16, accentColor: '#7C3AED' }}
+                          onChange={() => setRenewForm(p => ({ ...p, members: on ? p.members.filter(x => x !== c.user_id) : [...p.members, c.user_id] }))} />
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#111827' }}>{c.users?.full_name || 'Unassigned'}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: d <= 7 ? '#B91C1C' : '#6B7280', fontFamily: 'var(--mono)' }}>
+                          {d < 0 ? `${Math.abs(d)}d overdue` : `${d}d left`}
+                        </span>
+                      </label>
                     )
                   })}
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={labelStyle}>Title *</label>
-                  <input value={form.title} onChange={e => setF('title', e.target.value)} placeholder="e.g. CPR/AED recertification" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Topic</label>
-                  <select value={form.topic} onChange={e => setF('topic', e.target.value)} style={inputStyle}>
-                    <option value="">Select topic...</option>
-                    {formCat?.topics.map(t => <option key={t}>{t}</option>)}
-                  </select>
-                </div>
+              <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#6B7280' }}>
+                After the session, mark attendance and finalize it. Then update each cert's new expiry date in Certifications.
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button className="btn btn-ghost" onClick={() => setRenewal(null)}>Cancel</button>
+                <button className="btn btn-primary" onClick={handleRenewal} disabled={saving} style={{ opacity: saving ? 0.6 : 1 }}>
+                  {saving ? 'Scheduling...' : `Schedule for ${renewForm.members.length} →`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------- Full schedule form ---------- */}
+      {showForm && (
+        <div style={overlay} onClick={() => setShowForm(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+            <div style={modalHead}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#111827' }}>Schedule training</div>
+              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}><X size={18} /></button>
+            </div>
+
+            <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Essentials */}
+              <div>
+                <label style={labelStyle}>Title *</label>
+                <input value={form.title} onChange={e => setF('title', e.target.value)} placeholder="e.g. Monthly SCBA drill" style={inputStyle} autoFocus />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <div><label style={labelStyle}>Date *</label><input type="date" min={today} value={form.scheduled_date} onChange={e => setF('scheduled_date', e.target.value)} style={inputStyle} /></div>
                 <div><label style={labelStyle}>Start time</label><input type="time" value={form.start_time} onChange={e => setF('start_time', e.target.value)} style={inputStyle} /></div>
-                <div><label style={labelStyle}>End time</label><input type="time" value={form.end_time} onChange={e => setF('end_time', e.target.value)} style={inputStyle} /></div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={labelStyle}>Location</label>
-                  <input value={form.location} onChange={e => setF('location', e.target.value)} placeholder="e.g. Station 4, Training Bay" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Instructor</label>
-                  <select value={form.instructor_id} onChange={e => setF('instructor_id', e.target.value)} style={inputStyle}>
-                    <option value="">Select instructor...</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
-                  </select>
-                </div>
+                <div><label style={labelStyle}>Location</label><input value={form.location} onChange={e => setF('location', e.target.value)} placeholder="Training Bay" style={inputStyle} /></div>
               </div>
 
               <div>
-                <label style={labelStyle}>Renews certification (optional)</label>
-                <input value={form.related_cert_name} onChange={e => setF('related_cert_name', e.target.value)} placeholder="e.g. OSHA 30" style={inputStyle} />
+                <label style={labelStyle}>Category</label>
+                <CategoryChips value={form.category} onChange={v => setForm(prev => ({ ...prev, category: v, topic: '' }))} />
               </div>
 
-              <div>
-                <label style={labelStyle}>Notes / objectives</label>
-                <textarea rows={2} value={form.description} onChange={e => setF('description', e.target.value)} placeholder="What employees should bring, objectives, prerequisites..." style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} />
-              </div>
-
+              {/* People */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                   <label style={{ ...labelStyle, marginBottom: 0 }}>Assign employees * ({form.members.length} selected)</label>
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={() => setF('members', users.map(u => u.id))} style={{ background: 'none', border: 'none', color: '#7C3AED', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Select all</button>
-                    <button onClick={() => setF('members', [])} style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Clear</button>
+                    <button type="button" onClick={() => setF('members', users.map(u => u.id))} style={{ background: 'none', border: 'none', color: '#7C3AED', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Select all</button>
+                    <button type="button" onClick={() => setF('members', [])} style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Clear</button>
                   </div>
                 </div>
-                <div style={{ position: 'relative', marginBottom: 8 }}>
-                  <Search size={14} color="#9CA3AF" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-                  <input value={memberSearch} onChange={e => setMemberSearch(e.target.value)} placeholder="Search employees..." style={{ ...inputStyle, paddingLeft: 30 }} />
-                </div>
+                {users.length > 9 && (
+                  <div style={{ position: 'relative', marginBottom: 8 }}>
+                    <Search size={14} color="#9CA3AF" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+                    <input value={memberSearch} onChange={e => setMemberSearch(e.target.value)} placeholder="Search employees..." style={{ ...inputStyle, paddingLeft: 30 }} />
+                  </div>
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, maxHeight: 180, overflowY: 'auto', padding: 2 }}>
                   {filteredUsers.map(u => {
                     const on = form.members.includes(u.id)
@@ -559,9 +697,48 @@ export default function Tasks() {
                 </div>
               </div>
 
-              <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#6B7280' }}>
-                Scheduling doesn't renew a certification or count as completed training. Record attendance and finalize the session after it happens.
-              </div>
+              {/* More options */}
+              <button type="button" onClick={() => setShowMore(v => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start', background: 'none', border: 'none', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif', padding: 0 }}>
+                <SlidersHorizontal size={14} /> More options {showMore ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+
+              {showMore && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 14, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <label style={labelStyle}>Topic</label>
+                      <select value={form.topic} onChange={e => setF('topic', e.target.value)} style={inputStyle}>
+                        <option value="">Select topic...</option>
+                        {formCat?.topics.map(t => <option key={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>End time</label>
+                      <input type="time" value={form.end_time} onChange={e => setF('end_time', e.target.value)} style={inputStyle} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <label style={labelStyle}>Instructor</label>
+                      <select value={form.instructor_id} onChange={e => setF('instructor_id', e.target.value)} style={inputStyle}>
+                        <option value="">Select instructor...</option>
+                        {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Renews certification</label>
+                      <input list="cert-names" value={form.related_cert_name} onChange={e => setF('related_cert_name', e.target.value)} placeholder="None" style={inputStyle} />
+                      <datalist id="cert-names">
+                        {allCertNames.map(n => <option key={n} value={n} />)}
+                      </datalist>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Notes / objectives</label>
+                    <textarea rows={2} value={form.description} onChange={e => setF('description', e.target.value)} placeholder="What to bring, objectives, prerequisites..." style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} />
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button className="btn btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>

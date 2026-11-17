@@ -4,11 +4,21 @@ import PageHeader from '../components/PageHeader'
 import { useData } from '../lib/useData'
 import { getCertifications, getAlerts, supabase } from '../lib/supabase'
 import { LoadingState, ErrorState } from '../components/States'
-import { Settings, X, GripVertical, Eye, EyeOff, Calendar, Clock, MapPin, Users, ArrowRight } from 'lucide-react'
+import {
+  todayStr, daysBetween, formatTime, prettyDate, DEFAULT_TIME,
+  autoRenewalDate, scheduledRenewalKeys, hasRenewal, buildRenewalGroups,
+  scheduleRenewal, undoAssignments
+} from '../lib/training'
+import {
+  Settings, X, GripVertical, Eye, EyeOff, Clock, MapPin, Users, ArrowRight,
+  AlertTriangle, AlertCircle, Info, CalendarCheck, Mail, Undo2, Loader2
+} from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts'
+
+const SUPER_EMAILS = ['jlane@responseos.net', 'hseals@responseos.net']
 
 const DEFAULT_WIDGETS = [
   { id: 'score',             label: 'Compliance Score',     visible: true },
@@ -28,17 +38,9 @@ function mergeLayout(saved) {
   return [...kept, ...missing]
 }
 
-function todayStr() {
-  const d = new Date()
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0]
-}
-function daysBetween(dateStr) {
-  return Math.round((new Date(dateStr + 'T00:00:00') - new Date(todayStr() + 'T00:00:00')) / 86400000)
-}
-function formatTime(t) {
-  if (!t) return ''
-  const [h, m] = t.split(':').map(Number)
-  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
+function emailNote(r) {
+  if (r.emailError) return ' · email failed'
+  return r.emailed ? ` · ${r.emailed} email${r.emailed !== 1 ? 's' : ''} sent` : ''
 }
 
 function ScoreRing({ score }) {
@@ -86,6 +88,20 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null
 }
 
+const PieTip = ({ active, payload }) => {
+  if (!active || !payload?.length) return null
+  const p = payload[0]
+  return (
+    <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 12px', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: '#111827' }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.payload.color }} />
+        {p.name}: {p.value}
+      </div>
+      {p.payload.hint && <div style={{ color: '#6B7280', marginTop: 3 }}>{p.payload.hint}</div>}
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const { data: certs,  loading: l1, error: e1 } = useData(getCertifications)
@@ -98,6 +114,20 @@ export default function Dashboard() {
   const [dragOver, setDragOver] = useState(null)
   const [user, setUser] = useState(null)
   const [saving, setSaving] = useState(false)
+
+  // Auto-schedule state
+  const [scheduling, setScheduling] = useState(null)   // group key | 'all' | 'undo'
+  const [banner, setBanner] = useState(null)            // { text, ids, error }
+
+  async function loadAssignments(isDemo) {
+    const { data } = await supabase
+      .from('training_assignments')
+      .select('*, training_assignment_members(user_id, status)')
+      .eq('is_demo', isDemo)
+      .neq('status', 'cancelled')
+      .order('scheduled_date', { ascending: true })
+    setAssignments(data || [])
+  }
 
   useEffect(() => {
     async function init() {
@@ -113,13 +143,7 @@ export default function Dashboard() {
         } catch {}
       }
 
-      const { data } = await supabase
-        .from('training_assignments')
-        .select('*, training_assignment_members(user_id, status)')
-        .eq('is_demo', profile?.is_demo === true)
-        .neq('status', 'cancelled')
-        .order('scheduled_date', { ascending: true })
-      setAssignments(data || [])
+      await loadAssignments(profile?.is_demo === true)
       setLoadingA(false)
     }
     init()
@@ -146,6 +170,39 @@ export default function Dashboard() {
     setWidgets(next); setDragging(null); setDragOver(null)
   }
 
+  // ---- One-click renewals (shared with Assignments) ----
+  async function autoSchedule(groups, key) {
+    setScheduling(key); setBanner(null)
+    const done = []
+    try {
+      for (const g of groups) done.push(await scheduleRenewal(user, g))
+      await loadAssignments(user?.is_demo === true)
+      const emails = done.reduce((s, r) => s + (r.emailed || 0), 0)
+      const failed = done.some(r => r.emailError)
+      const text = done.length === 1
+        ? `${done[0].cert} renewal set for ${prettyDate(done[0].date)} · ${formatTime(DEFAULT_TIME)} — ${done[0].people} assigned${emailNote(done[0])}`
+        : `${done.length} renewal sessions scheduled${emails ? ` · ${emails} emails sent` : ''}${failed ? ' · some emails failed' : ''}`
+      setBanner({ text, ids: done.map(d => d.created.id) })
+    } catch (err) {
+      if (done.length) await loadAssignments(user?.is_demo === true)
+      setBanner({ text: err.message, ids: done.map(d => d.created.id), error: true })
+    }
+    setScheduling(null)
+  }
+
+  async function undoBanner() {
+    if (!banner?.ids?.length) { setBanner(null); return }
+    setScheduling('undo')
+    try {
+      await undoAssignments(banner.ids)
+      setBanner({ text: 'Undone — cancellation emails sent.', ids: [] })
+    } catch (err) {
+      setBanner({ text: err.message, ids: [], error: true })
+    }
+    await loadAssignments(user?.is_demo === true)
+    setScheduling(null)
+  }
+
   if (l1 || l2 || loadingA) return <LoadingState type="dashboard" />
   if (e1 || e2) return <ErrorState message={e1 || e2} />
 
@@ -164,6 +221,15 @@ export default function Dashboard() {
   const nextWeek  = upcoming.filter(x => daysBetween(x.scheduled_date) <= 7)
   const score     = Math.max(0, 100 - (expired * 15) - (pastDue.length * 10) - (expiring * 5))
 
+  // ---- Renewal matching ----
+  const keys = scheduledRenewalKeys(assignments)
+  const expiringCerts = c.filter(x => x.status === 'expiring')
+  const expiredCerts  = c.filter(x => x.status === 'expired')
+  const expiringScheduled   = expiringCerts.filter(x => hasRenewal(keys, x)).length
+  const expiringUnscheduled = expiringCerts.length - expiringScheduled
+  const expiredScheduled    = expiredCerts.filter(x => hasRenewal(keys, x)).length
+  const renewalGroups = buildRenewalGroups([...expiredCerts, ...expiringCerts], keys)
+
   const allMembers = assignments.flatMap(x => x.training_assignment_members || [])
   const attendanceData = [
     { name: 'Attended', value: allMembers.filter(m => m.status === 'completed').length, color: '#059669' },
@@ -172,22 +238,32 @@ export default function Dashboard() {
   ].filter(d => d.value > 0)
 
   const certData = [
-    { name: 'Valid',    value: valid,    color: '#059669' },
-    { name: 'Expiring', value: expiring, color: '#D97706' },
-    { name: 'Expired',  value: expired,  color: '#DC2626' },
+    { name: 'Valid',                   value: valid,               color: '#059669', hint: 'Current and in good standing' },
+    { name: 'Expiring/Scheduled',      value: expiringScheduled,   color: '#7C3AED', hint: 'Renewal training is scheduled' },
+    { name: 'Expiring, not scheduled', value: expiringUnscheduled, color: '#D97706', hint: 'No renewal session booked yet' },
+    { name: 'Expired',                 value: expired,             color: '#DC2626', hint: expiredScheduled ? `${expiredScheduled} with renewal scheduled` : 'Needs immediate renewal' },
   ].filter(d => d.value > 0)
 
   const trendData = ['8w ago', '7w ago', '6w ago', '5w ago', '4w ago', '3w ago', 'Last week', 'This week']
     .map((week, i) => ({ week, score: Math.min(100, score + [22, 18, 15, 12, 8, 5, 2, 0][i]) }))
 
-  const tierColor = { critical: '#DC2626', warning: '#D97706', info: '#7C3AED' }
-  const tierBg    = { critical: '#FEF2F2', warning: '#FFFBEB', info: '#F5F3FF' }
+  const tier = {
+    critical: { color: '#DC2626', bg: '#FEF2F2', Icon: AlertTriangle },
+    warning:  { color: '#D97706', bg: '#FFFBEB', Icon: AlertCircle },
+    info:     { color: '#7C3AED', bg: '#F5F3FF', Icon: Info },
+  }
 
-  const isAdmin = ['admin', 'supervisor'].includes(user?.role)
-  const canViewAll = ['admin', 'supervisor', 'auditor'].includes(user?.role)
-  const isVisible = id => widgets.find(w => w.id === id)?.visible !== false
+  const role = String(user?.role || '').toLowerCase()
+  const isSuper = SUPER_EMAILS.includes(String(user?.email || '').toLowerCase())
+  const isAdmin = ['admin', 'supervisor'].includes(role) || isSuper
+  const canViewAll = ['admin', 'supervisor', 'auditor'].includes(role) || isSuper
 
   const sessionList = [...pastDue, ...upcoming].slice(0, 6)
+  const legendFmt = data => v => {
+    const d = data.find(x => x.name === v)
+    return <span style={{ color: '#6B7280', fontSize: 12, fontWeight: 500 }}>{v}{d ? ` (${d.value})` : ''}</span>
+  }
+  const busy = !!scheduling
 
   // ---- Widgets ----
   const W = {
@@ -198,7 +274,7 @@ export default function Dashboard() {
           <div className="label" style={{ marginBottom: 8 }}>Compliance score</div>
           <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.8 }}>
             <span style={{ color: '#DC2626', fontWeight: 600 }}>{expired} expired</span> cert{expired !== 1 ? 's' : ''}<br />
-            <span style={{ color: '#D97706', fontWeight: 600 }}>{expiring} expiring</span> soon<br />
+            <span style={{ color: '#D97706', fontWeight: 600 }}>{expiring} expiring</span> soon{expiringScheduled ? <span style={{ color: '#7C3AED', fontWeight: 600 }}> · {expiringScheduled} scheduled</span> : null}<br />
             <span style={{ color: pastDue.length ? '#DC2626' : '#6B7280', fontWeight: 600 }}>{pastDue.length} past-due</span> training
           </div>
         </div>
@@ -293,16 +369,91 @@ export default function Dashboard() {
 
     cert_chart: () => (
       <div className="card">
-        <div className="label" style={{ marginBottom: 16 }}>Certification status</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div className="label">Certification status</div>
+          {(expiringScheduled + expiredScheduled) > 0 && (
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#7C3AED' }}>
+              {expiringScheduled + expiredScheduled} renewal{expiringScheduled + expiredScheduled !== 1 ? 's' : ''} scheduled
+            </span>
+          )}
+        </div>
         {certData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={certData} cx="50%" cy="45%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
-                {certData.map((e, i) => <Cell key={i} fill={e.color} />)}
-              </Pie>
-              <Legend formatter={v => <span style={{ color: '#6B7280', fontSize: 12, fontWeight: 500 }}>{v}</span>} />
-            </PieChart>
-          </ResponsiveContainer>
+          <>
+            <div style={{ position: 'relative' }}>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={certData} cx="50%" cy="42%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
+                    {certData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                  </Pie>
+                  <Tooltip content={<PieTip />} />
+                  <Legend formatter={legendFmt(certData)} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ position: 'absolute', top: '42%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', lineHeight: 1 }}>{c.length}</div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#9CA3AF', letterSpacing: '.06em', marginTop: 2 }}>CERTS</div>
+              </div>
+            </div>
+
+            {/* Confirmation banner */}
+            {isAdmin && banner && (
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, background: banner.error ? '#FEF2F2' : '#F5F3FF', border: `1px solid ${banner.error ? '#FECACA' : '#DDD6FE'}`, color: banner.error ? '#B91C1C' : '#5B21B6' }}>
+                {banner.error ? <AlertTriangle size={14} /> : <Mail size={14} />}
+                <span style={{ flex: 1, minWidth: 0 }}>{banner.text}</span>
+                {!banner.error && banner.ids?.length > 0 && (
+                  <button onClick={() => navigate('/tasks')} style={{ background: 'none', border: 'none', color: '#7C3AED', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>View</button>
+                )}
+                {banner.ids?.length > 0 && (
+                  <button onClick={undoBanner} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', color: '#6B7280', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                    {scheduling === 'undo' ? <Loader2 size={12} className="spin" /> : <Undo2 size={12} />} Undo
+                  </button>
+                )}
+                <button onClick={() => setBanner(null)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={13} /></button>
+              </div>
+            )}
+
+            {isAdmin && renewalGroups.length > 0 && (
+              <div style={{ marginTop: 10, paddingTop: 12, borderTop: '1px solid #F3F4F6' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                    Needs a renewal session ({renewalGroups.length})
+                  </div>
+                  {renewalGroups.length > 1 && (
+                    <button onClick={() => autoSchedule(renewalGroups, 'all')} disabled={busy}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: '#7C3AED', fontSize: 12, fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif', opacity: busy ? 0.6 : 1 }}>
+                      {scheduling === 'all' ? <Loader2 size={13} className="spin" /> : <CalendarCheck size={13} />} Auto-schedule all
+                    </button>
+                  )}
+                </div>
+                {renewalGroups.slice(0, 4).map(g => {
+                  const firstName = g.certs[0]?.users?.full_name || 'Unassigned'
+                  const working = scheduling === g.key
+                  const autoDate = autoRenewalDate(g.soonest)
+                  return (
+                    <div key={g.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 12 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: g.anyExpired ? '#DC2626' : '#D97706' }} />
+                      <span style={{ flex: 1, minWidth: 0, color: '#111827', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {g.cert_name} <span style={{ color: '#9CA3AF', fontWeight: 500 }}>· {g.people === 1 ? firstName : `${g.people} people`}</span>
+                      </span>
+                      <span style={{ fontWeight: 700, color: g.anyExpired ? '#B91C1C' : '#B45309', whiteSpace: 'nowrap' }}>
+                        {g.soonest < 0 ? `${Math.abs(g.soonest)}d overdue` : `${g.soonest}d left`}
+                      </span>
+                      <button onClick={() => autoSchedule([g], g.key)} disabled={busy}
+                        title={`Schedule for ${prettyDate(autoDate)} and email ${g.people === 1 ? firstName : `${g.people} people`}`}
+                        style={{ width: 28, height: 28, borderRadius: 7, flexShrink: 0, border: '1px solid #DDD6FE', background: '#F5F3FF', cursor: busy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: busy && !working ? 0.5 : 1 }}>
+                        {working ? <Loader2 size={14} color="#7C3AED" className="spin" /> : <CalendarCheck size={14} color="#7C3AED" />}
+                      </button>
+                    </div>
+                  )
+                })}
+                {renewalGroups.length > 4 && (
+                  <button onClick={() => navigate('/tasks')} style={{ marginTop: 4, background: 'none', border: 'none', color: '#6B7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif', padding: 0 }}>
+                    +{renewalGroups.length - 4} more on Assignments →
+                  </button>
+                )}
+              </div>
+            )}
+          </>
         ) : <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF', fontSize: 13 }}>No certification data yet</div>}
       </div>
     ),
@@ -316,7 +467,8 @@ export default function Dashboard() {
               <Pie data={attendanceData} cx="50%" cy="45%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
                 {attendanceData.map((e, i) => <Cell key={i} fill={e.color} />)}
               </Pie>
-              <Legend formatter={v => <span style={{ color: '#6B7280', fontSize: 12, fontWeight: 500 }}>{v}</span>} />
+              <Tooltip content={<PieTip />} />
+              <Legend formatter={legendFmt(attendanceData)} />
             </PieChart>
           </ResponsiveContainer>
         ) : <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF', fontSize: 13 }}>No assignments yet</div>}
@@ -327,20 +479,27 @@ export default function Dashboard() {
       <div className="card">
         <div className="label" style={{ marginBottom: 14 }}>Recent alerts</div>
         {a.length === 0 && <div style={{ fontSize: 13, color: '#9CA3AF', padding: '20px 0', textAlign: 'center' }}>No alerts — all clear.</div>}
-        {a.slice(0, 4).map(al => (
-          <div key={al.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, background: tierBg[al.tier], color: tierColor[al.tier], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
-              {al.tier === 'critical' ? '▲' : al.tier === 'warning' ? '●' : 'ℹ'}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, color: '#111827', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{al.message}</div>
-              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3, fontWeight: 500 }}>
-                {al.tier.toUpperCase()} · {new Date(al.created_at).toLocaleDateString()}
-                {!al.acknowledged && <span style={{ color: '#DC2626', marginLeft: 8 }}>● Unread</span>}
+        {a.slice(0, 4).map(al => {
+          const t = tier[al.tier] || tier.info
+          return (
+            <div key={al.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, background: t.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <t.Icon size={15} color={t.color} strokeWidth={2} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, color: '#111827', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{al.message}</div>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {String(al.tier || '').toUpperCase()} · {new Date(al.created_at).toLocaleDateString()}
+                  {!al.acknowledged && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#DC2626' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#DC2626' }} /> Unread
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     ),
   }
@@ -358,6 +517,8 @@ export default function Dashboard() {
 
   return (
     <div className="page-wrap" style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <style>{`@keyframes ros-spin { to { transform: rotate(360deg) } } .spin { animation: ros-spin 0.8s linear infinite }`}</style>
+
       <PageHeader
         title="Dashboard"
         subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
