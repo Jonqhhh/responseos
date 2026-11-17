@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ShieldCheck, CheckSquare, Bot, Bell, ScrollText, LayoutDashboard, Users, FolderLock, ClipboardList } from 'lucide-react'
+import { ShieldCheck, CheckSquare, Bot, Bell, ScrollText, LayoutDashboard, Users, FolderLock, ClipboardList, Flame, Biohazard, Anchor, HeartPulse } from 'lucide-react'
 
 export default function Landing() {
   const navigate = useNavigate()
@@ -274,13 +274,15 @@ export default function Landing() {
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
-                  { icon: '🔥', title: 'Fire',    topics: 'Extinguisher, SCBA, Foam Operations, Drills' },
-                  { icon: '☣️', title: 'Hazmat',  topics: 'ERG, Air Monitoring, Decon, Spill Control' },
-                  { icon: '🪢', title: 'Rescue',  topics: 'High-Angle, Confined Space, Rope Systems' },
-                  { icon: '🏥', title: 'Medical', topics: 'CPR, AED, First Aid, Trauma Scenarios' },
-                ].map(t => (
+                  { icon: Flame,      title: 'Fire',    topics: 'Extinguisher, SCBA, Foam Operations, Drills' },
+                  { icon: Biohazard,  title: 'Hazmat',  topics: 'ERG, Air Monitoring, Decon, Spill Control' },
+                  { icon: Anchor,     title: 'Rescue',  topics: 'High-Angle, Confined Space, Rope Systems' },
+                  { icon: HeartPulse, title: 'Medical', topics: 'CPR, AED, First Aid, Trauma Scenarios' },
+                ].map(({ icon: Icon, ...t }) => (
                   <div key={t.title} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', background: '#F9FAFB', borderRadius: 10, border: '1px solid #E5E7EB' }}>
-                    <div style={{ fontSize: 20, flexShrink: 0 }}>{t.icon}</div>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: '#F3F4F6', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={16} color="#4B5563" strokeWidth={2} />
+                    </div>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{t.title}</div>
                       <div style={{ fontSize: 12, color: '#9CA3AF' }}>{t.topics}</div>
