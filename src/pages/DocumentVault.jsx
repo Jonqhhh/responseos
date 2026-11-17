@@ -175,9 +175,16 @@ export default function DocumentVault() {
 
   async function loadDocuments() {
     setLoading(true)
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    let isDemo = false
+    if (authUser) {
+      const { data: profile } = await supabase.from('users').select('is_demo').eq('id', authUser.id).single()
+      isDemo = profile?.is_demo === true
+    }
     const { data } = await supabase
       .from('documents')
       .select('*, users(full_name)')
+      .eq('is_demo', isDemo)
       .order('created_at', { ascending: false })
     setDocuments(data || [])
     setLoading(false)
@@ -222,7 +229,8 @@ export default function DocumentVault() {
       file_url: publicUrl,
       file_name: file.name,
       file_size: file.size,
-      uploaded_by: user?.id
+      uploaded_by: user?.id,
+      is_demo: user?.is_demo === true
     })
 
     if (error) { showToast(error.message, 'error'); setUploading(false); return }
